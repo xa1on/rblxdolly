@@ -1,5 +1,6 @@
 local RunService = game:GetService("RunService")
 local setRoll = require(script.Parent.setRoll)
+local lerp = require(script.Parent.lerp)
 
 local m = {}
 local defaultSpeed = 10
@@ -16,30 +17,6 @@ local returnCFrame
 local returnFOV
 m.interpMethod = "linear"
 
-
-function m.CFrameDist(cf1, cf2)
-    return math.abs((cf1.Position - cf2.Position).Magnitude)
-end
-
-function m.lerp(start, goal, alpha)
-    return start + (goal - start) * alpha
-end
-
-function m.quadLerp(p1, p2, p0, t)
-    local l1 = p1:Lerp(p0, t)
-    local l2 = p0:Lerp(p2, t)
-    return l1:Lerp(l2, t)
-end
-
-function m.cubicLerp(p1, p2, ps1, ps2, t)
-    local l1 = p1:Lerp(ps1, t)
-    local l2 = ps1:Lerp(ps2, t)
-    local l3 = ps2:Lerp(p2, t)
-    local r1 = l1:Lerp(l2, t)
-    local r2 = l2:Lerp(l3, t)
-    return r1:Lerp(r2, t)
-end
-
 local function linearInterp(path,t)
     local current_t = t * defaultSpeed
     if #path:GetChildren() > 0 then
@@ -50,15 +27,15 @@ local function linearInterp(path,t)
                 if previous then
                     local current = path[tostring(i)]
                     lastpointind = i
-                    local dist = m.CFrameDist(current.CFrame, previous.CFrame)
+                    local dist = lerp.CFrameDist(current.CFrame, previous.CFrame)
                     local progression = current_t/dist
                     if progression >= 1 then
                         current_t = current_t - dist
                     else
                         return {false,
                         previous.CFrame:Lerp(current.CFrame,progression),
-                        m.lerp(previous.FOV.Value, current.FOV.Value, progression),
-                        m.lerp(previous.Roll.Value, current.Roll.Value, progression)}
+                        lerp.lerp(previous.FOV.Value, current.FOV.Value, progression),
+                        lerp.lerp(previous.Roll.Value, current.Roll.Value, progression)}
                     end
                 end
                 previous = path:FindFirstChild(tostring(i))
@@ -70,21 +47,6 @@ local function linearInterp(path,t)
         end
     end
     return {true,CFrame.new(),60,0}
-end
-
-local function bezierLength(path,type,acc)
-    local lengths = {}
-    for i = 2, #path, 1 do
-        local len = 0
-        local l = 0
-        local previous = 0
-        while l ~= 1 do
-            local currentCFrame = type()
-            l=l+acc
-        end
-        lengths[i-1] = len
-    end
-    return lengths
 end
 
 local interpFunctions = {
