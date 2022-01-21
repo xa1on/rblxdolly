@@ -1,4 +1,4 @@
-local m
+local m = {}
 
 function m.CFrameDist(cf1, cf2)
     return math.abs((cf1.Position - cf2.Position).Magnitude)

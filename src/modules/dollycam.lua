@@ -7,6 +7,7 @@ local defaultSpeed = 10
 
 m.pathfoldername = "mvmpaths"
 m.renderfoldername = "mvmrender"
+m.pointfoldername = "Points"
 local widget = require(script.Parent.widgets.initalize)
 
 m.playing = false
@@ -15,36 +16,44 @@ local timescale = 1
 local currentdir
 local returnCFrame
 local returnFOV
-m.interpMethod = "linear"
+m.interpMethod = widget.InterpDefault
+
+local function grabPoints(path)
+    local points = {}
+    local sort = {}
+    for _, i in pairs(path:GetChildren()) do
+        if tonumber(i.Name) then
+            sort[#sort+1] = tonumber(i.Name)
+        end
+    end
+    table.sort(sort)
+    for _, i in pairs(sort) do
+        points[#points+1] = path:FindFirstChild(tostring(i))
+    end
+    return points
+end
 
 local function linearInterp(path,t)
-    local current_t = t * defaultSpeed
-    if #path:GetChildren() > 0 then
-        local lastpointind = 0
-        local previous
-        for i = 1, #path:GetChildren(), 1 do
-            if path:FindFirstChild(tostring(i)) then
-                if previous then
-                    local current = path[tostring(i)]
-                    lastpointind = i
-                    local dist = lerp.CFrameDist(current.CFrame, previous.CFrame)
-                    local progression = current_t/dist
-                    if progression >= 1 then
-                        current_t = current_t - dist
-                    else
-                        return {false,
-                        previous.CFrame:Lerp(current.CFrame,progression),
-                        lerp.lerp(previous.FOV.Value, current.FOV.Value, progression),
-                        lerp.lerp(previous.Roll.Value, current.Roll.Value, progression)}
-                    end
+    local points = grabPoints(path)
+    if #points > 0 then
+        local current_t = t * defaultSpeed
+        for index, current in pairs(points) do
+            local previous = points[index-1]
+            if previous then
+                local dist = lerp.CFrameDist(current.CFrame, previous.CFrame)
+                local progression = current_t/dist
+                if progression >= 1 then
+                    current_t = current_t - dist
+                else
+                    return {false,
+                    previous.CFrame:Lerp(current.CFrame,progression),
+                    lerp.lerp(previous.FOV.Value, current.FOV.Value, progression),
+                    lerp.lerp(previous.Roll.Value, current.Roll.Value, progression)}
                 end
-                previous = path:FindFirstChild(tostring(i))
             end
         end
-        if path:FindFirstChild(tostring(lastpointind)) then
-            local lastpoint = path[tostring(lastpointind)]
-            return {true, lastpoint.CFrame, lastpoint.FOV.Value, lastpoint.Roll.Value}
-        end
+        local lastPoint = points[#points]
+        return {true, lastPoint.CFrame, lastPoint.FOV.Value, lastPoint.Roll.Value}
     end
     return {true,CFrame.new(),60,0}
 end
@@ -68,29 +77,43 @@ widget.pathDropdown:GetButton().MouseButton1Click:Connect(function()
     m.reloadDropdown()
 end)
 
+local function createIfNotExist(parent, type, name)
+    local newinst
+    if not parent:FindFirstChild(name) then
+        newinst = Instance.new(type, parent)
+        newinst.Name = name
+    end
+    return parent:FindFirstChild(name)
+end
+
 local function checkPathDir()
+    local pathsFolder
+    local pathFolder
     if not workspace:FindFirstChild(m.pathfoldername) then
-        local i = Instance.new("Folder", workspace)
-        i.Name = m.pathfoldername
-        i.ChildAdded:Connect(function()
+        pathsFolder = Instance.new("Folder", workspace)
+        pathsFolder.Name = m.pathfoldername
+        pathsFolder.ChildAdded:Connect(function()
             m.reloadDropdown()
         end)
     end
-    if not workspace[m.pathfoldername]:FindFirstChild(widget.pathNameInput:GetValue()) then
-        local i = Instance.new("Folder", workspace[m.pathfoldername])
-        i.Name = widget.pathNameInput:GetValue()
-        i.AncestryChanged:Connect(function()
+    pathsFolder = workspace:FindFirstChild(m.pathfoldername)
+    if not pathsFolder:FindFirstChild(widget.pathNameInput:GetValue()) then
+        pathFolder = Instance.new("Folder", workspace[m.pathfoldername])
+        pathFolder.Name = widget.pathNameInput:GetValue()
+        pathFolder.AncestryChanged:Connect(function()
             m.reloadDropdown()
         end)
     end
+    pathFolder = pathsFolder:FindFirstChild(widget.pathNameInput:GetValue())
+    createIfNotExist(pathFolder, "Folder", m.pointfoldername)
     m.reloadDropdown()
-    widget.pathDropdown:SoftSelection(widget.pathNameInput:GetValue())
-    return workspace[m.pathfoldername][widget["pathNameInput"]:GetValue()]
+    widget.pathDropdown:SetSelection(widget.pathDropdown:GetID(widget.pathNameInput:GetValue()))
+    return pathsFolder[widget["pathNameInput"]:GetValue()]
 end
 
 function m.reconnectPoints()
     local pathdir = checkPathDir()
-    for _, i in pairs(checkPathDir():GetChildren()) do
+    for _, i in pairs(pathdir[m.pointfoldername]:GetChildren()) do
         if i:IsA("BasePart") and not i.Locked then
             i.Changed:Connect(function()
                 m.RenderPath()
@@ -161,23 +184,23 @@ function m.RenderPath()
     end
     local renderFolder = Instance.new("Folder",pathdir.Parent)
     renderFolder.Name = m.renderfoldername
-    for _, i in pairs(pathdir:GetChildren()) do
+    for _, i in pairs(pathdir[m.pointfoldername]:GetChildren()) do
         pointgui(renderFolder, "point", nil, i)
     end
     local t = 1
-    local spot = interpFunctions[m.interpMethod](pathdir, t / 3)
+    local spot = interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
     while spot[1] ~= true do
         local newPoint = point(spot[2], t, renderFolder, false, true)
         pointgui(newPoint, nil, t, newPoint)
         t = t + 1
-        spot = interpFunctions[m.interpMethod](pathdir, t / 3)
+        spot = interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
     end
 end
 
 function m.createPoint(roll, fov)
     local Camera = workspace.CurrentCamera
     local pathdir = checkPathDir()
-    local newPoint = point(Camera.CFrame + Camera.CFrame.LookVector, #pathdir:GetChildren()+1, pathdir, true)
+    local newPoint = point(Camera.CFrame + Camera.CFrame.LookVector, #(pathdir[m.pointfoldername]):GetChildren()+1, pathdir[m.pointfoldername], true)
     local rollValue = Instance.new("NumberValue", newPoint)
         rollValue.Name = "Roll"
         rollValue.Value = roll
@@ -187,14 +210,13 @@ function m.createPoint(roll, fov)
     m:RenderPath()
 end
 
-function m.runPath(interp,ts)
+function m.runPath(ts)
     if not m.playing then
         currentdir = checkPathDir()
         currentdir.Parent:FindFirstChild(m.renderfoldername):Destroy()
         m.playing = true
         pbtime = 0
         timescale = ts
-        m.interpMethod = interp
         returnFOV = workspace.CurrentCamera.FieldOfView
         returnCFrame = workspace.CurrentCamera.CFrame
     end
@@ -207,7 +229,7 @@ function playback(step)
             setRoll.toggleRollGui()
         end
         local Camera = workspace.CurrentCamera
-        local location = interpFunctions[m.interpMethod](currentdir, pbtime * timescale)
+        local location = interpFunctions[m.interpMethod](currentdir[m.pointfoldername], pbtime * timescale)
         if(location[1]) then
             m.playing = false
             Camera.CameraType = Enum.CameraType.Custom

@@ -13,7 +13,7 @@ DropdownMenu.__index = DropdownMenu
 
 DropdownMenu._defaultLength = 189
 
-function DropdownMenu.new(nameSuffix, labelText, selectionTable)
+function DropdownMenu.new(nameSuffix, labelText, selectionTable, default)
 	local self = {}
 	setmetatable(self, DropdownMenu)
 	self._dropdownButtonHeight = GuiUtilities.kTitleBarHeight -- should be 27
@@ -28,7 +28,7 @@ function DropdownMenu.new(nameSuffix, labelText, selectionTable)
 
 	
 	local button = Instance.new("TextButton")
-	button.Text = "Select an option"
+
 	button.Size = UDim2.new(0, 100, 0.6, 0)
 	button.AnchorPoint = Vector2.new(0,0.5)
 	button.Position = UDim2.new(0, GuiUtilities.StandardLineElementLeftMargin, 0.5, 0)
@@ -70,6 +70,7 @@ function DropdownMenu.new(nameSuffix, labelText, selectionTable)
 	self._contentsFrame = contentsFrame
 	self._invisFrame = invisFrame
 	self._buttonArray = {}
+    self._buttonProperties = {}
 	self._selected = ""
 	self._expanded = false
 	self._dropButton.MouseButton1Click:Connect(function()
@@ -80,6 +81,17 @@ function DropdownMenu.new(nameSuffix, labelText, selectionTable)
 		self:ResetChoice()
 	end)
 	
+    if not default or not selectionTable then
+	    button.Text = "Select an option"
+    else
+        for i, v in pairs(selectionTable) do
+            if v[3] == default then
+                button.Text = v[1]
+                self._selected = v[2]
+            end
+        end
+    end
+
 	if selectionTable then -- if the user provided a table of selections
 		self:AddSelectionsFromTable(selectionTable)
 	end
@@ -106,7 +118,6 @@ function DropdownMenu:_toggleExpand()
 		else
 			absAdded = absSizeY+absPosY
 		end
-
 			if not self._expanded then
 			if absAdded >= widget.AbsoluteSize.Y then
 				self._contentsFrame.AnchorPoint = Vector2.new(0.5,1)
@@ -169,9 +180,24 @@ function DropdownMenu:AddSelection(selectionTable)
 	end)
 	
 	self._buttonArray[selectionTable[3]] = {button = button, connection = connection}
-	
+    self._buttonProperties[selectionTable[3]] = {name = selectionTable[1], value = selectionTable[2]}
+
     -- change contentsFrame size. Remember to do this at the end next time.
 	self:_updateSize()
+end
+
+function DropdownMenu:GetID(name)
+    for i, v in pairs(self._buttonProperties) do
+        if v.name == name then
+            return i
+        end
+    end
+    return nil
+end
+
+function DropdownMenu:SetSelection(id)
+    self.selected = self._buttonProperties[id].value
+    self._dropButton.Text = self._buttonProperties[id].name
 end
 
 function DropdownMenu:SoftSelection(text)

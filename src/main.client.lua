@@ -49,6 +49,7 @@ local timescale = 1
 -- local functions
 
 dep.dollycam.RenderPath()
+
 dep.dollycam:reconnectPoints()
 
 
@@ -61,7 +62,7 @@ wdginit["createPoint"].MouseButton1Down:Connect(function()
 end)
 
 wdginit["runPath"].MouseButton1Down:Connect(function()
-    if not dep.dollycam.playing then dep.dollycam.runPath("linear",timescale) end
+    if not dep.dollycam.playing then dep.dollycam.runPath(timescale) end
 end)
 
 wdginit["rerenderPath"].MouseButton1Down:Connect(function()
@@ -115,6 +116,13 @@ end)
 wdginit["pathDropdown"]:SetValueChangedFunction(function(newpath)
     if not dep.dollycam.playing then
         wdginit["pathNameInput"]:SetValue(newpath.Name)
+        dep.dollycam.RenderPath()
+    end
+end)
+
+wdginit["interpDropdown"]:SetValueChangedFunction(function(newinterp)
+    if not dep.dollycam.playing then
+        dep.dollycam.interpMethod = newinterp
         dep.dollycam.RenderPath()
     end
 end)

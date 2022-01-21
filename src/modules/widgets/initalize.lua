@@ -3,10 +3,12 @@ local wdglib = require(script.Parent.require)()
 local m = {}
 
 m.InterpMethods = {
-    {"linear", "linear", "0"},
-    {"auto bezier", "abezier", "1"},
-    {"manual bezier", "mbezier", "2"}
+    {"linear", "linear", "linear"},
+    {"auto bezier", "abezier", "abezier"},
+    {"manual bezier", "mbezier", "mbezier"}
 }
+
+m.InterpDefault = "linear"
 
 function m:GenerateWidget(widget)
 	local bgframe = Instance.new("Frame")
@@ -51,7 +53,7 @@ function m:GenerateWidget(widget)
     m.rollInput:SetMaxGraphemes(10)
     m.rollInput:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.interpDropdown = wdglib.DropdownMenu.new("interpDropdown", "Interpolation", m.InterpMethods)
+    m.interpDropdown = wdglib.DropdownMenu.new("interpDropdown", "Interpolation", m.InterpMethods, m.InterpDefault)
     m.interpDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     m.rerenderPath = wdglib.CustomTextButton.new("rerenderPath", "Rerender Campath"):GetButton()
