@@ -4,7 +4,9 @@ local m = {}
 m.HistoryService = game:GetService("ChangeHistoryService")
 m.Selection = game:GetService("Selection")
 m.RepStorage = game:GetService("ReplicatedFirst")
-m.coreGui = game:GetService("CoreGui")
+m.CoreGui = game:GetService("CoreGui")
+m.RunService = game:GetService("RunService")
+
 
 m.moduledir = script.Parent.modules
 

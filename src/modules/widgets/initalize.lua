@@ -56,9 +56,13 @@ function m:GenerateWidget(widget)
     m.interpDropdown = wdglib.DropdownMenu.new("interpDropdown", "Interpolation", m.InterpMethods, m.InterpDefault)
     m.interpDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.rerenderPath = wdglib.CustomTextButton.new("rerenderPath", "Rerender Campath"):GetButton()
+    --[[m.rerenderPath = wdglib.CustomTextButton.new("rerenderPath", "Rerender Campath"):GetButton()
     m.rerenderPath.Size = UDim2.new(1, 0, 0, 25)
-    m.rerenderPath.Parent = m.dollycamcollapse:GetContentsFrame()
+    m.rerenderPath.Parent = m.dollycamcollapse:GetContentsFrame()]]
+
+    m.stopPath = wdglib.CustomTextButton.new("stopPath", "Stop Playback"):GetButton()
+    m.stopPath.Size = UDim2.new(1, 0, 0, 25)
+    m.stopPath.Parent = m.dollycamcollapse:GetContentsFrame()
 
     m.runPath = wdglib.CustomTextButton.new("runPath", "Playback Path"):GetButton()
     m.runPath.Size = UDim2.new(1, 0, 0, 30)

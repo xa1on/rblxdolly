@@ -1,18 +1,17 @@
 --[[
-
     rblxmvm
     something#7597
-    
 ideas:
 
 campaths
-3 passes, regular, depth, greenscreen
-camdata exporting into AE
-ae script to import camdata
+    3 passes, regular, depth, greenscreen
+    camdata exporting into AE
+        ae script to import camdata
 
 widget layout:
 dollycam:
     create point
+
 ]]--
 
 -- widget
@@ -47,13 +46,19 @@ local b_toggle = toolbar:CreateButton("Toggle","Toggle rblxmvm widget","")
 local timescale = 1
 
 -- local functions
-
 dep.dollycam.RenderPath()
 
 dep.dollycam:reconnectPoints()
 
-
 b_toggle.Click:Connect(function() widget.Enabled = not widget.Enabled end)
+
+dep.dollycam.resetTimescale()
+
+-- DOLLYCAM
+
+dep.RunService.Heartbeat:Connect(dep.dollycam.playback)
+
+wdginit["pathDropdown"]:GetButton().MouseButton1Click:Connect(dep.dollycam.reloadDropdown)
 
 wdginit["createPoint"].MouseButton1Down:Connect(function()
     if not dep.dollycam.playing then
@@ -65,9 +70,13 @@ wdginit["runPath"].MouseButton1Down:Connect(function()
     if not dep.dollycam.playing then dep.dollycam.runPath(timescale) end
 end)
 
-wdginit["rerenderPath"].MouseButton1Down:Connect(function()
-    if not dep.dollycam.playing then dep.dollycam.RenderPath() end
+wdginit["stopPath"].MouseButton1Down:Connect(function()
+    if dep.dollycam.playing then dep.dollycam.stop() end
 end)
+
+--[[wdginit["rerenderPath"].MouseButton1Down:Connect(function()
+    if not dep.dollycam.playing then dep.dollycam.RenderPath() end
+end)]]
 
 wdginit["timescaleInput"]:SetValueChangedFunction(function(newts)
     if tonumber(newts) then

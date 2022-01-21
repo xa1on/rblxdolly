@@ -1,24 +1,28 @@
-local RunService = game:GetService("RunService")
+local m = {}
+
+-- dependencies
 local setRoll = require(script.Parent.setRoll)
 local lerp = require(script.Parent.lerp)
-
-local m = {}
-local defaultSpeed = 10
-
-m.pathfoldername = "mvmpaths"
-m.renderfoldername = "mvmrender"
-m.pointfoldername = "Points"
 local widget = require(script.Parent.widgets.initalize)
 
-m.playing = false
+local HistoryService = game:GetService("ChangeHistoryService")
+
+local defaultSpeed = 15
 local pbtime = 0
 local timescale = 1
 local currentdir
 local returnCFrame
 local returnFOV
-m.interpMethod = widget.InterpDefault
 
-local function grabPoints(path)
+m.pathfoldername = "mvmpaths"
+m.renderfoldername = "Render"
+m.pointfoldername = "Points"
+
+m.interpMethod = widget.InterpDefault
+m.playing = false
+
+
+function m.grabPoints(path)
     local points = {}
     local sort = {}
     for _, i in pairs(path:GetChildren()) do
@@ -33,8 +37,8 @@ local function grabPoints(path)
     return points
 end
 
-local function linearInterp(path,t)
-    local points = grabPoints(path)
+function m.linearInterp(path,t)
+    local points = m.grabPoints(path)
     if #points > 0 then
         local current_t = t * defaultSpeed
         for index, current in pairs(points) do
@@ -58,8 +62,9 @@ local function linearInterp(path,t)
     return {true,CFrame.new(),60,0}
 end
 
-local interpFunctions = {
-    ["linear"] = linearInterp,
+
+m.interpFunctions = {
+    ["linear"] = m.linearInterp,
 }
 
 function m.reloadDropdown()
@@ -73,11 +78,7 @@ function m.reloadDropdown()
     end
 end
 
-widget.pathDropdown:GetButton().MouseButton1Click:Connect(function()
-    m.reloadDropdown()
-end)
-
-local function createIfNotExist(parent, type, name)
+function m.createIfNotExist(parent, type, name)
     local newinst
     if not parent:FindFirstChild(name) then
         newinst = Instance.new(type, parent)
@@ -86,46 +87,59 @@ local function createIfNotExist(parent, type, name)
     return parent:FindFirstChild(name)
 end
 
-local function checkPathDir()
+function m.checkPathDir()
     local pathsFolder
     local pathFolder
     if not workspace:FindFirstChild(m.pathfoldername) then
         pathsFolder = Instance.new("Folder", workspace)
         pathsFolder.Name = m.pathfoldername
-        pathsFolder.ChildAdded:Connect(function()
-            m.reloadDropdown()
-        end)
+        pathsFolder.ChildAdded:Connect(m.reloadDropdown)
+        pathsFolder.ChildRemoved:Connect(m.RenderPath)
     end
     pathsFolder = workspace:FindFirstChild(m.pathfoldername)
     if not pathsFolder:FindFirstChild(widget.pathNameInput:GetValue()) then
         pathFolder = Instance.new("Folder", workspace[m.pathfoldername])
         pathFolder.Name = widget.pathNameInput:GetValue()
-        pathFolder.AncestryChanged:Connect(function()
-            m.reloadDropdown()
-        end)
+        pathFolder.AncestryChanged:Connect(m.reloadDropdown)
     end
     pathFolder = pathsFolder:FindFirstChild(widget.pathNameInput:GetValue())
-    createIfNotExist(pathFolder, "Folder", m.pointfoldername)
+    m.createIfNotExist(pathFolder, "Folder", m.pointfoldername)
     m.reloadDropdown()
     widget.pathDropdown:SetSelection(widget.pathDropdown:GetID(widget.pathNameInput:GetValue()))
     return pathsFolder[widget["pathNameInput"]:GetValue()]
 end
 
 function m.reconnectPoints()
-    local pathdir = checkPathDir()
+    local pathdir = m.checkPathDir()
     for _, i in pairs(pathdir[m.pointfoldername]:GetChildren()) do
         if i:IsA("BasePart") and not i.Locked then
-            i.Changed:Connect(function()
-                m.RenderPath()
-            end)
-            i.AncestryChanged:Connect(function()
-                m.RenderPath()
-            end)
+            i.Changed:Connect(m.RenderPath)
         end
     end
 end
 
-local function point(cf, name, parent, check, locked)
+function m.resetTimescale()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ParticleEmitter") and v:FindFirstChild("originalts") then
+            v.TimeScale = v:FindFirstChild("originalts").Value
+            v:FindFirstChild("originalts"):Destroy()
+        end
+    end
+end
+
+function m.particleTimescale(ts)
+    m.resetTimescale()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("ParticleEmitter") then
+            local originalts = Instance.new("NumberValue", v)
+            originalts.Name = "originalts"
+            originalts.Value = v.TimeScale
+            v.TimeScale = v.TimeScale * ts
+        end
+    end
+end
+
+function m.point(cf, name, parent, check, locked)
     local newPoint = Instance.new("Part", parent)
     newPoint.Size = Vector3.new(1,1,1)
     newPoint.Name = name
@@ -135,12 +149,7 @@ local function point(cf, name, parent, check, locked)
     newPoint.FrontSurface = Enum.SurfaceType.Studs
     newPoint.Transparency = 1
     if check then
-        newPoint.Changed:Connect(function()
-            m.RenderPath()
-        end)
-        newPoint.AncestryChanged:Connect(function()
-            m.RenderPath()
-        end)
+        newPoint.Changed:Connect(m.RenderPath)
     end
     if locked then
         newPoint.Locked = true
@@ -148,7 +157,7 @@ local function point(cf, name, parent, check, locked)
     return newPoint
 end
 
-local function pointgui(parent, type, name, adornee)
+function m.pointgui(parent, type, name, adornee)
     local vispoint = Instance.new("BillboardGui", parent)
     local visframe = Instance.new("Frame", vispoint)
     if name then 
@@ -176,7 +185,7 @@ function m.RenderPath()
     if m.playing then
         return
     end
-    local pathdir = checkPathDir()
+    local pathdir = m.checkPathDir()
     for _, i in pairs(pathdir.Parent:GetChildren()) do
         if i.Name == m.renderfoldername then
             i.Parent = nil
@@ -185,57 +194,64 @@ function m.RenderPath()
     local renderFolder = Instance.new("Folder",pathdir.Parent)
     renderFolder.Name = m.renderfoldername
     for _, i in pairs(pathdir[m.pointfoldername]:GetChildren()) do
-        pointgui(renderFolder, "point", nil, i)
+        m.pointgui(renderFolder, "point", nil, i)
     end
     local t = 1
-    local spot = interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
+    local spot = m.interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
     while spot[1] ~= true do
-        local newPoint = point(spot[2], t, renderFolder, false, true)
-        pointgui(newPoint, nil, t, newPoint)
+        local newPoint = m.point(spot[2], t, renderFolder, false, true)
+        m.pointgui(newPoint, nil, t, newPoint)
         t = t + 1
-        spot = interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
+        spot = m.interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
     end
 end
 
 function m.createPoint(roll, fov)
     local Camera = workspace.CurrentCamera
-    local pathdir = checkPathDir()
-    local newPoint = point(Camera.CFrame + Camera.CFrame.LookVector, #(pathdir[m.pointfoldername]):GetChildren()+1, pathdir[m.pointfoldername], true)
+    local pathdir = m.checkPathDir()
+    local newPoint = m.point(Camera.CFrame + Camera.CFrame.LookVector, #(pathdir[m.pointfoldername]):GetChildren()+1, pathdir[m.pointfoldername], true)
     local rollValue = Instance.new("NumberValue", newPoint)
         rollValue.Name = "Roll"
         rollValue.Value = roll
     local fovValue = Instance.new("NumberValue", newPoint)
         fovValue.Name = "FOV"
         fovValue.Value = fov
+    HistoryService:SetWaypoint("Created Point")
     m:RenderPath()
 end
 
 function m.runPath(ts)
     if not m.playing then
-        currentdir = checkPathDir()
+        currentdir = m.checkPathDir()
         currentdir.Parent:FindFirstChild(m.renderfoldername):Destroy()
         m.playing = true
         pbtime = 0
         timescale = ts
         returnFOV = workspace.CurrentCamera.FieldOfView
         returnCFrame = workspace.CurrentCamera.CFrame
+        m.particleTimescale(timescale)
     end
 end
 
+function m.stop()
+    local Camera = workspace.CurrentCamera
+    m.playing = false
+    Camera.CameraType = Enum.CameraType.Custom
+    Camera.CFrame = returnCFrame
+    Camera.FieldOfView = returnFOV
+    m.resetTimescale()
+    m.RenderPath()
+end
 
-function playback(step)
+function m.playback(step)
     if m.playing then
         if setRoll.roll_active then
             setRoll.toggleRollGui()
         end
         local Camera = workspace.CurrentCamera
-        local location = interpFunctions[m.interpMethod](currentdir[m.pointfoldername], pbtime * timescale)
+        local location = m.interpFunctions[m.interpMethod](currentdir[m.pointfoldername], pbtime * timescale)
         if(location[1]) then
-            m.playing = false
-            Camera.CameraType = Enum.CameraType.Custom
-            Camera.CFrame = returnCFrame
-            Camera.FieldOfView = returnFOV
-            m.RenderPath()
+            m.stop()
         else
             Camera.CameraType = Enum.CameraType.Scriptable
             Camera.FieldOfView = location[3]
@@ -245,6 +261,5 @@ function playback(step)
         pbtime = pbtime + step
     end
 end
-RunService.Heartbeat:Connect(playback)
 
 return m

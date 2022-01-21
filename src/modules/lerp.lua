@@ -43,6 +43,4 @@ function m.bezierLength(path,type,acc)
     return lengths
 end
 
-
-
 return m
