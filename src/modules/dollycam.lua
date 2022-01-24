@@ -2,12 +2,11 @@ local m = {}
 
 -- dependencies
 local setRoll = require(script.Parent.setRoll)
-local lerp = require(script.Parent.lerp)
+local interp = require(script.Parent.interpolation)
 local widget = require(script.Parent.widgets.initalize)
 
 local HistoryService = game:GetService("ChangeHistoryService")
 
-local defaultSpeed = 15
 local pbtime = 0
 local timescale = 1
 local currentdir
@@ -20,52 +19,6 @@ m.pointfoldername = "Points"
 
 m.interpMethod = widget.InterpDefault
 m.playing = false
-
-
-function m.grabPoints(path)
-    local points = {}
-    local sort = {}
-    for _, i in pairs(path:GetChildren()) do
-        if tonumber(i.Name) then
-            sort[#sort+1] = tonumber(i.Name)
-        end
-    end
-    table.sort(sort)
-    for _, i in pairs(sort) do
-        points[#points+1] = path:FindFirstChild(tostring(i))
-    end
-    return points
-end
-
-function m.linearInterp(path,t)
-    local points = m.grabPoints(path)
-    if #points > 0 then
-        local current_t = t * defaultSpeed
-        for index, current in pairs(points) do
-            local previous = points[index-1]
-            if previous then
-                local dist = lerp.CFrameDist(current.CFrame, previous.CFrame)
-                local progression = current_t/dist
-                if progression >= 1 then
-                    current_t = current_t - dist
-                else
-                    return {false,
-                    previous.CFrame:Lerp(current.CFrame,progression),
-                    lerp.lerp(previous.FOV.Value, current.FOV.Value, progression),
-                    lerp.lerp(previous.Roll.Value, current.Roll.Value, progression)}
-                end
-            end
-        end
-        local lastPoint = points[#points]
-        return {true, lastPoint.CFrame, lastPoint.FOV.Value, lastPoint.Roll.Value}
-    end
-    return {true,CFrame.new(),60,0}
-end
-
-
-m.interpFunctions = {
-    ["linear"] = m.linearInterp,
-}
 
 function m.reloadDropdown()
     widget.pathDropdown:RemoveAll()
@@ -165,7 +118,7 @@ function m.pointgui(parent, type, name, adornee)
     else
         vispoint.Name = "Point"
     end
-    vispoint.AlwaysOnTop = true
+    vispoint.AlwaysOnTop = false
     if(type == "point") then
         vispoint.Size = UDim2.new(0.6, 0, 0.6, 0)
         visframe.BackgroundColor3 = Color3.new(1,0,0)
@@ -197,12 +150,12 @@ function m.RenderPath()
         m.pointgui(renderFolder, "point", nil, i)
     end
     local t = 1
-    local spot = m.interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
+    local spot = interp[m.interpMethod](pathdir[m.pointfoldername], t / 3)
     while spot[1] ~= true do
         local newPoint = m.point(spot[2], t, renderFolder, false, true)
         m.pointgui(newPoint, nil, t, newPoint)
         t = t + 1
-        spot = m.interpFunctions[m.interpMethod](pathdir[m.pointfoldername], t / 3)
+        spot = interp[m.interpMethod](pathdir[m.pointfoldername], t / 3)
     end
 end
 
@@ -249,7 +202,7 @@ function m.playback(step)
             setRoll.toggleRollGui()
         end
         local Camera = workspace.CurrentCamera
-        local location = m.interpFunctions[m.interpMethod](currentdir[m.pointfoldername], pbtime * timescale)
+        local location = interp[m.interpMethod](currentdir[m.pointfoldername], pbtime * timescale)
         if(location[1]) then
             m.stop()
         else

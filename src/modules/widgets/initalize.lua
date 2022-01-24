@@ -4,8 +4,8 @@ local m = {}
 
 m.InterpMethods = {
     {"linear", "linear", "linear"},
-    {"auto bezier", "abezier", "abezier"},
-    {"manual bezier", "mbezier", "mbezier"}
+    {"catmull-rom", "cmrom", "cmrom"},
+    {"manual bezier", "bezierm", "bezierm"}
 }
 
 m.InterpDefault = "linear"
@@ -17,6 +17,7 @@ function m:GenerateWidget(widget)
 	wdglib.GuiUtilities.syncGuiElementBackgroundColor(bgframe)
     m.scrollFrame = wdglib.VerticalScrollingFrame.new("sframe")
     m.listFrame = wdglib.VerticallyScalingListFrame.new("lframe")
+
 
     -- dollycam
     m.dollycamcollapse = wdglib.CollapsibleTitledSection.new("dollycam", "dollycam", true, true, false)

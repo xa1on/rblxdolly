@@ -12,6 +12,6 @@ m.moduledir = script.Parent.modules
 
 m.dollycam = require(m.moduledir.dollycam)
 m.setRoll = require(m.moduledir.setRoll)
-m.setRoll = require(m.moduledir.lerp)
+m.interp = require(m.moduledir.interpolation)
 
 return m
