@@ -47,7 +47,6 @@ function m.checkPathDir()
         pathsFolder = Instance.new("Folder", workspace)
         pathsFolder.Name = m.pathfoldername
         pathsFolder.ChildAdded:Connect(m.reloadDropdown)
-        pathsFolder.ChildRemoved:Connect(m.RenderPath)
     end
     pathsFolder = workspace:FindFirstChild(m.pathfoldername)
     if not pathsFolder:FindFirstChild(widget.pathNameInput:GetValue()) then

@@ -5,7 +5,7 @@ local m = {}
 m.InterpMethods = {
     {"linear", "linear", "linear"},
     {"catmull-rom", "cmrom", "cmrom"},
-    {"manual bezier", "bezierm", "bezierm"}
+    {"manual bezier", "bezier", "bezier"}
 }
 
 m.InterpDefault = "linear"

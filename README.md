@@ -6,7 +6,9 @@ Utilizes a forked version of [StudioWidget API](https://github.com/TrippTrapp84/
 
 Message me on discord if you have any issues: something#7597
 
-In order to build this project, use:
+
+
+In order to build this project, install [rojo](https://rojo.space) and run this command:
 ```bash
 rojo build --output "C:\Users\[USERNAME]\AppData\Local\Roblox\Plugins\rblxmvm.rbxmx"
 ```
