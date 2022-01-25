@@ -7,17 +7,19 @@ local widget = require(script.Parent.widgets.initalize)
 
 local HistoryService = game:GetService("ChangeHistoryService")
 
+-- playback variables
 local pbtime = 0
 local timescale = 1
 local currentdir
 local returnCFrame
 local returnFOV
+m.constSpeed = true
 
 m.pathfoldername = "mvmpaths"
 m.renderfoldername = "Render"
 m.pointfoldername = "Points"
 
-m.interpMethod = widget.InterpDefault
+m.interpMethod = interp[widget.InterpDefault]
 m.playing = false
 
 function m.reloadDropdown()
@@ -149,12 +151,12 @@ function m.RenderPath()
         m.pointgui(renderFolder, "point", nil, i)
     end
     local t = 1
-    local spot = interp[m.interpMethod](pathdir[m.pointfoldername], t / 3)
+    local spot = m.interpMethod(pathdir[m.pointfoldername], t / 3, m.constSpeed)
     while spot[1] ~= true do
         local newPoint = m.point(spot[2], t, renderFolder, false, true)
         m.pointgui(newPoint, nil, t, newPoint)
         t = t + 1
-        spot = interp[m.interpMethod](pathdir[m.pointfoldername], t / 3)
+        spot = m.interpMethod(pathdir[m.pointfoldername], t / 3, m.constSpeed)
     end
 end
 
@@ -176,6 +178,7 @@ function m.runPath(ts)
     if not m.playing then
         currentdir = m.checkPathDir()
         currentdir.Parent:FindFirstChild(m.renderfoldername):Destroy()
+        widget["speedinterpCheckbox"]:SetDisabled(true)
         m.playing = true
         pbtime = 0
         timescale = ts
@@ -186,6 +189,7 @@ function m.runPath(ts)
 end
 
 function m.stop()
+    widget["speedinterpCheckbox"]:SetDisabled(false)
     local Camera = workspace.CurrentCamera
     m.playing = false
     Camera.CameraType = Enum.CameraType.Custom
@@ -201,7 +205,7 @@ function m.playback(step)
             setRoll.toggleRollGui()
         end
         local Camera = workspace.CurrentCamera
-        local location = interp[m.interpMethod](currentdir[m.pointfoldername], pbtime * timescale)
+        local location = m.interpMethod(currentdir[m.pointfoldername], pbtime * timescale, m.constSpeed)
         if(location[1]) then
             m.stop()
         else

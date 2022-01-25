@@ -3,7 +3,7 @@ local wdglib = require(script.Parent.require)()
 local m = {}
 
 m.InterpMethods = {
-    {"linear", "linear", "linear"},
+    {"linear", "linear", "linear" },
     {"catmull-rom", "cmrom", "cmrom"},
     {"manual bezier", "bezier", "bezier"}
 }
@@ -56,6 +56,9 @@ function m:GenerateWidget(widget)
 
     m.interpDropdown = wdglib.DropdownMenu.new("interpDropdown", "Interpolation", m.InterpMethods, m.InterpDefault)
     m.interpDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
+
+    m.speedinterpCheckbox = wdglib.LabeledCheckbox.new("speedinterpCheckbox", "Constant Speed", true, false)
+    m.speedinterpCheckbox:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     --[[m.rerenderPath = wdglib.CustomTextButton.new("rerenderPath", "Rerender Campath"):GetButton()
     m.rerenderPath.Size = UDim2.new(1, 0, 0, 25)

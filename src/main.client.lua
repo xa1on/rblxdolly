@@ -41,7 +41,6 @@ local toolbar = plugin:CreateToolbar("rblxmvm")
 -- buttons
 local b_toggle = toolbar:CreateButton("Toggle","Toggle rblxmvm widget","")
 
-
 -- local variables
 local timescale = 1
 
@@ -131,7 +130,14 @@ end)
 
 wdginit["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
-        dep.dollycam.interpMethod = newinterp
+        dep.dollycam.interpMethod = dep.interp[newinterp]
+        dep.dollycam.RenderPath()
+    end
+end)
+
+wdginit["speedinterpCheckbox"]:SetValueChangedFunction(function(val)
+    if not dep.dollycam.playing then
+        dep.dollycam.constSpeed = val
         dep.dollycam.RenderPath()
     end
 end)

@@ -31,6 +31,7 @@ function m.calcCatmullRom(t, p1, p2, pi, pf)
     local pi = pi or p1
     local p2 = p2 or p1
     local pf = pf or p2
+    --return 0.5*((2*p1) + t*((p2-pi) + t*((2*pi-5*pi+4*p2-pf) + t*(-pi+3*p1-3*p2+pf))))
     local a,b,c,d = m.GetCentripetalCRCoefficients(pi, p1, p2, pf)
     return m.calcCubic(t,a,b,c,d)
 end
@@ -40,12 +41,24 @@ function m.pointCatmullRom(path,t)
     local pi = path[1] or p1
     local p2 = path[3] or p1
     local pf = path[4] or p2
-    return CFrame.new(m.calcCatmullRom(t, p1.Position, p2.Position, pi.Position, pf.Position), m.calcCatmullRom(t, p1.LookVector, p2.LookVector, pi.LookVector, pf.LookVector))
+    local newposv = m.calcCatmullRom(t, p1.Position, p2.Position, pi.Position, pf.Position)
+    local newlookv = m.calcCatmullRom(t, p1.LookVector, p2.LookVector, pi.LookVector, pf.LookVector)
+    return CFrame.new(newposv, newposv + newlookv)
 end
 
-function m.bezierLength(path,type,acc)
+function m.bezierLength(path,type,range,acc)
     if not acc then
         acc = 0.05
+    end
+    if not range then
+        local previous = type(path,0)
+        local len = 0
+        for i = acc, 1, acc do
+            local currentCFrame = type(path,i)
+            len = len + m.CFrameDist(previous, currentCFrame)
+            previous = currentCFrame
+        end
+        return len
     end
     local lengths = {}
     for i = 2, #path, 1 do
@@ -108,29 +121,35 @@ m["linear"] = m.linearInterp
 function m.hermiteInterp(path,t)
 end
 
-function m.catmullromInterp(path,t)
+function m.catmullromInterp(path,t,constspeed)
     local points = m.grabPoints(path)
     if #points < 0 then
         return {true,CFrame.new(),60,0}
     end
     local current_t = t * m.defaultSpeed
     for index, current in pairs(points) do
-        local previous = points[index-1]
-        if previous then
+        local next = points[index+1]
+        if next then
             local cframelist = {}
             for i = -1,2,1 do
-                if points[index+i] then cframelist[i+2] = points[index+i].CFrame
+                if points[index+i] then
+                    cframelist[i+2] = points[index+i].CFrame
                 else cframelist[i+2] = nil end
             end
-            local dist = m.bezierLength(cframelist)
+            local dist
+            if constspeed then
+                dist = m.bezierLength(cframelist, m.pointCatmullRom)
+            else
+                dist = 50
+            end
             local progression = current_t/dist
             if progression >= 1 then
                 current_t = current_t - dist
             else
                 return {false,
                 m.pointCatmullRom(cframelist,progression),
-                m.lerp(previous.FOV.Value, current.FOV.Value, progression),
-                m.lerp(previous.Roll.Value, current.Roll.Value, progression)}
+                m.lerp(current.FOV.Value, next.FOV.Value, progression),
+                m.lerp(current.Roll.Value, next.Roll.Value, progression)}
             end
         end
     end
