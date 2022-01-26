@@ -218,4 +218,9 @@ function m.playback(step)
     end
 end
 
+if workspace:FindFirstChild(m.pathfoldername) then
+    m.RenderPath()
+    m.reconnectPoints()
+end
+
 return m

@@ -4,7 +4,7 @@ local m = {}
 
 m.InterpMethods = {
     {"linear", "linear", "linear" },
-    {"catmull-rom", "cmrom", "cmrom"},
+    {"cubic", "cubic", "cubic"},
     {"manual bezier", "bezier", "bezier"}
 }
 
@@ -59,10 +59,6 @@ function m:GenerateWidget(widget)
 
     m.speedinterpCheckbox = wdglib.LabeledCheckbox.new("speedinterpCheckbox", "Constant Speed", true, false)
     m.speedinterpCheckbox:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
-
-    --[[m.rerenderPath = wdglib.CustomTextButton.new("rerenderPath", "Rerender Campath"):GetButton()
-    m.rerenderPath.Size = UDim2.new(1, 0, 0, 25)
-    m.rerenderPath.Parent = m.dollycamcollapse:GetContentsFrame()]]
 
     m.stopPath = wdglib.CustomTextButton.new("stopPath", "Stop Playback"):GetButton()
     m.stopPath.Size = UDim2.new(1, 0, 0, 25)

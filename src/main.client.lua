@@ -45,9 +45,6 @@ local b_toggle = toolbar:CreateButton("Toggle","Toggle rblxmvm widget","")
 local timescale = 1
 
 -- local functions
-dep.dollycam.RenderPath()
-
-dep.dollycam:reconnectPoints()
 
 b_toggle.Click:Connect(function() widget.Enabled = not widget.Enabled end)
 
@@ -73,16 +70,12 @@ wdginit["stopPath"].MouseButton1Down:Connect(function()
     if dep.dollycam.playing then dep.dollycam.stop() end
 end)
 
---[[wdginit["rerenderPath"].MouseButton1Down:Connect(function()
-    if not dep.dollycam.playing then dep.dollycam.RenderPath() end
-end)]]
-
 wdginit["timescaleInput"]:SetValueChangedFunction(function(newts)
     if tonumber(newts) then
         if not dep.dollycam.playing then
             timescale = newts
         else
-            wdginit:SetValue(timescale)
+            wdginit["timescaleInput"]:SetValue(timescale)
         end
     end
 end)
