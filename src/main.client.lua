@@ -61,8 +61,13 @@ dep.dollycam.resetTimescale()
 
 -- DOLLYCAM
 
-dep.RunService.Heartbeat:Connect(dep.dollycam.playback)
+dep.RunService.Heartbeat:Connect(dep.dollycam.preview)
 wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(dep.dollycam.reloadDropdown)
+
+if workspace:FindFirstChild(dep.dollycam.mvmDirName) then
+    dep.dollycam.reconnectPoints()
+    dep.dollycam.renderPath()
+end
 
 
 
@@ -70,7 +75,7 @@ wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(dep.dollycam.reloadDro
 -- creating points
 local function createPoint()
     if not dep.dollycam.playing then
-        dep.dollycam.createPoint(dep.setRoll.angle, workspace.CurrentCamera.FieldOfView)
+        dep.dollycam.createPoint()
     end
 end
 wdg["createPoint"].MouseButton1Down:Connect(createPoint)
@@ -79,7 +84,7 @@ createAction("createPoint", "Create Point", "Creates a campath point", "", creat
 
 -- running path
 local function runPath()
-    if not dep.dollycam.playing then dep.dollycam.runPath(dep.dollycam.timescale) end
+    if not dep.dollycam.playing then dep.dollycam.runPath() end
 end
 wdg["runPath"].MouseButton1Down:Connect(runPath)
 createAction("runPath", "Play Path", "Plays selected path", "", runPath)
@@ -87,7 +92,7 @@ createAction("runPath", "Play Path", "Plays selected path", "", runPath)
 
 -- stop playback
 local function stopPath()
-    if dep.dollycam.playing then dep.dollycam.stop() end
+    if dep.dollycam.playing then dep.dollycam.stopPreview() end
 end
 wdg["stopPath"].MouseButton1Down:Connect(stopPath)
 createAction("stopPath", "Stop Playback", "Stops playback", "", stopPath)

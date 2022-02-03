@@ -104,7 +104,7 @@ m["linear"] = m.linearInterp
 function m.hermiteInterp(path,t)
 end
 
-function m.catmullromInterp(path,t,constspeed)
+function m.catmullromInterp(path,t)
     local points = m.grabPoints(path)
     if #points <= 0 then
         return {true,CFrame.new(),60,0}

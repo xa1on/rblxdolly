@@ -8,8 +8,8 @@ local wdg = require(script.Parent.widgets.initalize)
 local HistoryService = game:GetService("ChangeHistoryService")
 
 -- playback variables
-local playbackTime = 0
-local timescale = 1
+local previewTime = 0
+m.timescale = 1
 m.interpMethod = interp[wdg.InterpDefault]
 
 local returnCFrame
@@ -20,18 +20,22 @@ m.playing = false
 -- variables
 m.mvmDirName = "mvmpaths"
 m.renderDirName = "Render"
+m.pathsDirName = "Paths"
 m.pointDirName = "Points"
 
 m.mvmDir = nil
-m.currentPath = nil
+m.renderDir = nil
+m.pathsDir = nil
+m.currentDir = nil
+m.pointDir = nil
 
 function m.reloadDropdown()
     wdg.pathDropdown:RemoveAll()
     if not m.mvmDir then
-        m.checkPathDir()
+        m.checkpathsDir()
         return
     end
-    for index, inst in pairs(m.mvmDir:GetChildren()) do
+    for index, inst in pairs(m.pathsDir:GetChildren()) do
         if inst.Name ~= m.renderDirName then
             wdg.pathDropdown:AddSelection({inst.Name, inst, tostring(index)})
         end
@@ -50,25 +54,152 @@ function m.createIfNotExist(parent, type, name, connection, func)
     return newInst
 end
 
-function m.checkPathDir()
-    m.mvmDir = m.createIfNotExist(workspace, "Folder", m.mvmDirName, "ChildAdded", m.reloadDropdown)
-    
+function m.checkDir()
+    m.mvmDir = m.createIfNotExist(workspace, "Folder", m.mvmDirName)
+    m.renderDir = m.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
+    m.pathsDir = m.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
+    m.currentDir = m.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", function()
+        m.renderPath()
+        m.reloadDropdown()
+    end)
+    m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
+    m.reloadDropdown()
+    wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
 end
 
 function m.reconnectPoints()
-
+    m.checkDir()
+    for _, i in pairs(m.mvmDir:GetDescendants()) do
+        if i:IsA("BasePart") and not i.Locked then i.Changed:Connect(m.renderPath) end
+        if i:IsA("Folder") and i.Name ~= m.renderDirName and i.Name ~= m.pointDirName then
+            i.AncestryChanged:Connect(function()
+                m.renderPath()
+                m.reloadDropdown()
+            end)
+        end
+    end
 end
 
 function m.resetTimescale()
+    for _, i in pairs(workspace:GetDescendants()) do
+        if i:IsA("ParticleEmitter") and i:FindFirstChild("originalTS") then
+            i.TimeScale = i:FindFirstChild("originalTS").Value
+            i:FindFirstChild("originalTS"):Destroy()
+        end
+    end
+end
 
+function m.particleTimescale(ts)
+    m.resetTimescale()
+    for _, i in pairs(workspace:GetDescendants()) do
+        if i:IsA("ParticleEmitter") then
+            local originalts = Instance.new("NumberValue", i)
+            originalts.Name = "originalTS"
+            originalts.Value = i.TimeScale
+            i.TimeScale = i.TimeScale * ts
+        end
+    end
+end
+
+function m.point(cf, parent, name, locked)
+    local newPoint = Instance.new("Part", parent)
+    newPoint.Size = Vector3.new(1,1,1)
+    newPoint.Name = name
+    newPoint.CFrame = cf
+    newPoint.TopSurface = Enum.SurfaceType.SmoothNoOutlines
+    newPoint.BottomSurface = Enum.SurfaceType.SmoothNoOutlines
+    newPoint.FrontSurface = Enum.SurfaceType.Studs
+    newPoint.Transparency = 1
+    if not locked then
+        newPoint.Changed:Connect(m.renderPath)
+    else newPoint.Locked = true end
+    return newPoint
+end
+
+function m.pointGui(parent, name, type, adornee)
+    local guipoint = Instance.new("BillboardGui", parent)
+    local guiframe = Instance.new("Frame", guipoint)
+    if name then guipoint.Name = name
+    else guipoint.Name = "Point" end
+    guipoint.AlwaysOnTop = false
+    if(type == "point") then
+        guipoint.Size = UDim2.new(0.6, 0, 0.6, 0)
+        guiframe.BackgroundColor3 = Color3.new(1,0,0)
+    else
+        guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
+        guiframe.BackgroundColor3 = Color3.new(0,1,0)
+    end
+    guiframe.Size = UDim2.new(1,0,1,0)
+    guiframe.BorderSizePixel = 0
+    if adornee then guipoint.Adornee = adornee end
+    return guipoint
+end
+
+function m.renderPath()
+    if m.playing then return end
+    if not m.mvmDir then m.checkDir() end
+    m.renderDir:ClearAllChildren()
+    for _, i in pairs(m.pointDir:GetChildren()) do
+        m.pointGui(m.renderDir, nil, "point", i)
+    end
+    local t = 1
+    local betweenCF = m.interpMethod(m.pointDir, t / 3)
+    while betweenCF[1] ~= true do
+        local newPoint = m.point(betweenCF[2], m.renderDir, t, true)
+        m.pointGui(newPoint, t, "inbetween", newPoint)
+        t = t + 1
+        betweenCF = m.interpMethod(m.pointDir, t / 3)
+    end
 end
 
 function m.createPoint()
-    m.checkPathDir()
+    local Camera = workspace.CurrentCamera
+    m.checkDir()
+    local newPoint = m.point(Camera.CFrame + Camera.CFrame.LookVector, m.pointDir, #(m.pointDir):GetChildren()+1, false)
+    local rollValue = Instance.new("NumberValue", newPoint)
+        rollValue.Name = "Roll"
+        rollValue.Value = setRoll.angle
+    local fovValue = Instance.new("NumberValue", newPoint)
+        fovValue.Name = "FOV"
+        fovValue.Value = Camera.FieldOfView
+    HistoryService:SetWaypoint("Created Point")
+    m:renderPath()
 end
 
-function m.playback()
+function m.runPath()
+    if m.playing then return end
+    m.checkDir()
+    m.renderDir:ClearAllChildren()
+    previewTime = 0
+    local Camera = workspace.CurrentCamera
+    m.returnCFrame = Camera.CFrame
+    m.returnFOV = Camera.FieldOfView
+    m.particleTimescale(m.timescale)
+    m.playing = true
+end
 
+function m.stopPreview()
+    m.playing = false
+    local Camera = workspace.CurrentCamera
+    Camera.CameraType = Enum.CameraType.Custom
+    Camera.CFrame = m.returnCFrame
+    Camera.FieldOfView = m.returnFOV
+    m.resetTimescale()
+    m.renderPath()
+end
+
+function m.preview(step)
+    if not m.playing then return end
+    if setRoll.roll_active then setRoll.toggleRollGui() end
+    local previewLocation = m.interpMethod(m.pointDir, previewTime * m.timescale)
+    if previewLocation[1] then m.stopPreview() else
+        local Camera = workspace.CurrentCamera
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.FieldOfView = previewLocation[3]
+        Camera:SetRoll(math.rad(previewLocation[4]))
+        Camera.CFrame = previewLocation[2]
+    end
+    previewTime = previewTime + step
 end
 
 return m
