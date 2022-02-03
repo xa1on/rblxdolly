@@ -26,8 +26,8 @@ function m:GenerateWidget(widget)
     m.pathDropdown = wdglib.DropdownMenu.new("pathDropdown", "Paths", {})
     m.pathDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.pathNameInput = wdglib.LabeledTextInput.new("pathNameInput", "Path Name", "Path")
-    m.pathNameInput:SetMaxGraphemes(10)
+    m.pathNameInput = wdglib.LabeledTextInput.new("pathNameInput", "Path Name", "Name")
+    m.pathNameInput:SetMaxGraphemes(30)
     m.pathNameInput:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     m.createPoint = wdglib.CustomTextButton.new("createPoint", "Create Point"):GetButton()
@@ -56,9 +56,6 @@ function m:GenerateWidget(widget)
 
     m.interpDropdown = wdglib.DropdownMenu.new("interpDropdown", "Interpolation", m.InterpMethods, m.InterpDefault)
     m.interpDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
-
-    m.speedinterpCheckbox = wdglib.LabeledCheckbox.new("speedinterpCheckbox", "Constant Speed", true, false)
-    m.speedinterpCheckbox:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     m.stopPath = wdglib.CustomTextButton.new("stopPath", "Stop Playback"):GetButton()
     m.stopPath.Size = UDim2.new(1, 0, 0, 25)

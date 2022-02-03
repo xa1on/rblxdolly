@@ -37,6 +37,7 @@ function LabeledTextInputClass.new(nameSuffix, labelText, defaultValue)
 	self._label = label
 
 	self._value = defaultValue
+    self._previousvalue = defaultValue
 
 	-- Dumb hack to add padding to text box,
 	local textBoxWrapperFrame = Instance.new("Frame")
@@ -83,10 +84,10 @@ function LabeledTextInputClass.new(nameSuffix, labelText, defaultValue)
 			-- changed function twice.
 			return
 		end
-
+        self._previousvalue = self._value
 		self._value = self._textBox.Text
 		if (self._valueChangedFunction) then 
-			self._valueChangedFunction(self._value)
+			self._valueChangedFunction(self._value, self._previousvalue)
 		end
 	end)
 	
