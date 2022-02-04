@@ -29,12 +29,24 @@ m.pathsDir = nil
 m.currentDir = nil
 m.pointDir = nil
 
+function m.notnill(inst)
+    if not inst then
+        return false
+    end
+    if inst.Parent then
+        if inst.Parent == workspace then
+            return true
+        else 
+            return m.notnill(inst.Parent)
+        end
+    else
+        return false
+    end
+end
+
 function m.reloadDropdown()
     wdg.pathDropdown:RemoveAll()
-    if not m.mvmDir then
-        m.checkpathsDir()
-        return
-    end
+    if not m.mvmDir then m.checkDir() return end
     for index, inst in pairs(m.pathsDir:GetChildren()) do
         if inst.Name ~= m.renderDirName then
             wdg.pathDropdown:AddSelection({inst.Name, inst, tostring(index)})
@@ -137,10 +149,15 @@ end
 
 function m.renderPath()
     if m.playing then return end
-    if not m.mvmDir then m.checkDir() end
-    m.renderDir:ClearAllChildren()
+    if not m.mvmDir then m.checkDir() return end
+    if m.renderDir then m.renderDir:ClearAllChildren() end
+    if not m.notnill(m.pointDir) then return end
     for _, i in pairs(m.pointDir:GetChildren()) do
-        m.pointGui(m.renderDir, nil, "point", i)
+        local newPoint = i:Clone()
+        newPoint:ClearAllChildren()
+        newPoint.Name = "Point " .. i.Name
+        newPoint.Parent = m.renderDir
+        m.pointGui(newPoint, nil, "point", newPoint)
     end
     local t = 1
     local betweenCF = m.interpMethod(m.pointDir, t / 3)
@@ -154,7 +171,7 @@ end
 
 function m.createPoint()
     local Camera = workspace.CurrentCamera
-    m.checkDir()
+    if not m.notnill(m.pointDir) then m.checkDir() end
     local newPoint = m.point(Camera.CFrame + Camera.CFrame.LookVector, m.pointDir, #(m.pointDir):GetChildren()+1, false)
     local rollValue = Instance.new("NumberValue", newPoint)
         rollValue.Name = "Roll"
