@@ -61,6 +61,8 @@ dep.dollycam.resetTimescale()
 
 -- DOLLYCAM
 
+dep.dollycam.interpMethod = dep.interp[wdg.interpDropdown:GetChoice()]
+
 dep.RunService.Heartbeat:Connect(dep.dollycam.preview)
 wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(dep.dollycam.reloadDropdown)
 
@@ -68,7 +70,6 @@ if workspace:FindFirstChild(dep.dollycam.mvmDirName) then
     dep.dollycam.reconnectPoints()
     dep.dollycam.renderPath()
 end
-
 
 
 

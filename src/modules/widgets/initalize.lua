@@ -3,9 +3,9 @@ local wdglib = require(script.Parent.require)()
 local m = {}
 
 m.InterpMethods = {
-    {"linear", "linear", "linear" },
-    {"cubic", "cubic", "cubic"},
-    {"manual bezier", "bezier", "bezier"}
+    {"linear", "linearInterp", "linear"},
+    {"cubic", "cubicInterp", "cubic"},
+    {"manual bezier", "bezierInterp", "bezier"}
 }
 
 m.InterpDefault = "linear"

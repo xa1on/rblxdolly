@@ -10,7 +10,7 @@ local HistoryService = game:GetService("ChangeHistoryService")
 -- playback variables
 local previewTime = 0
 m.timescale = 1
-m.interpMethod = interp[wdg.InterpDefault]
+m.interpMethod = nil
 
 local returnCFrame
 local returnFOV
@@ -160,12 +160,12 @@ function m.renderPath()
         m.pointGui(newPoint, nil, "point", newPoint)
     end
     local t = 1
-    local betweenCF = m.interpMethod(m.pointDir, t / 3)
+    local betweenCF = interp.pathInterp(m.pointDir, t / 3, m.interpMethod)
     while betweenCF[1] ~= true do
         local newPoint = m.point(betweenCF[2], m.renderDir, t, true)
         m.pointGui(newPoint, t, "inbetween", newPoint)
         t = t + 1
-        betweenCF = m.interpMethod(m.pointDir, t / 3)
+        betweenCF = interp.pathInterp(m.pointDir, t / 3, m.interpMethod)
     end
 end
 
@@ -208,7 +208,7 @@ end
 function m.preview(step)
     if not m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local previewLocation = m.interpMethod(m.pointDir, previewTime * m.timescale)
+    local previewLocation = interp.pathInterp(m.pointDir, previewTime * m.timescale, m.interpMethod)
     if previewLocation[1] then m.stopPreview() else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Scriptable
