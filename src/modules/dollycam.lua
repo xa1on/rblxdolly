@@ -83,7 +83,7 @@ function m.reconnectPoints()
     m.checkDir()
     for _, i in pairs(m.mvmDir:GetDescendants()) do
         if i:IsA("BasePart") and not i.Locked then i.Changed:Connect(m.renderPath) end
-        if i:IsA("Folder") and i.Name ~= m.renderDirName and i.Name ~= m.pointDirName then
+        if i:IsA("Folder") and i.Name ~= m.renderDirName then
             i.AncestryChanged:Connect(function()
                 m.renderPath()
                 m.reloadDropdown()

@@ -1,6 +1,6 @@
 local m = {}
 
-m.defaultSpeed = 15
+m.defaultTiming = 2
 m.constSpeed = true
 
 function m.CFrameDist(cf1, cf2)
@@ -88,7 +88,7 @@ function m.pathInterp(path, t, func)
     if #points <= 0 then
         return {true, CFrame.new(), 60, 0}
     end
-    local current_t = t * m.defaultSpeed
+    local current_t = t
     for index, current in pairs(points) do
         local next = points[index+1]
         if next then
@@ -102,10 +102,7 @@ function m.pathInterp(path, t, func)
                     rolllist[i+1] = points[index+i].Roll.Value
                 end
             end
-            local dist = 5 * m.defaultSpeed
-            if m.constSpeed then
-                dist = m.CFrameDist(current.CFrame, next.CFrame)
-            end
+            local dist = m.defaultTiming
             local progression = current_t/dist
             if progression >= 1 then
                 current_t = current_t - dist
