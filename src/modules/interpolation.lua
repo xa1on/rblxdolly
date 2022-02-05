@@ -72,19 +72,7 @@ function m.interpolateCF(path, t, func)
     return CFrame.new(newpv, newpv + newlv)
 end
 
-function m.grabPoints(path)
-    local points = {}
-    local sort = {}
-    for _, i in pairs(path:GetChildren()) do
-        if tonumber(i.Name) then sort[#sort+1] = tonumber(i.Name) end
-    end
-    table.sort(sort)
-    for _, i in pairs(sort) do points[#points+1] = path:FindFirstChild(tostring(i)) end
-    return points
-end
-
-function m.pathInterp(path, t, func)
-    local points = m.grabPoints(path)
+function m.pathInterp(points, t, func)
     if #points <= 0 then
         return {true, CFrame.new(), 60, 0}
     end

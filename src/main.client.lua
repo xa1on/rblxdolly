@@ -22,8 +22,8 @@ local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float,
 	200,
 	150,
 	150)
-local widget = plugin:CreateDockWidgetPluginGui("rblxmvm", widgetInfo)
-widget.Title = "rblxmvm - something/xalon"
+local widget = plugin:CreateDockWidgetPluginGui("RBLXMVM", widgetInfo)
+widget.Title = "RBLXMVM - something/xalon"
 
 -- dependencies
 local moduledir = script.Parent.modules
@@ -158,5 +158,12 @@ wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
         dep.dollycam.interpMethod = dep.interp[newinterp]
         dep.dollycam.renderPath()
+    end
+end)
+
+wdg["autoreorder"]:SetValueChangedFunction(function(newvalue)
+    if not dep.dollycam.playing then
+        dep.dollycam.allowReorder = newvalue
+        dep.dollycam.renamePoints()
     end
 end)

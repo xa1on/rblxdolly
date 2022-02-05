@@ -8,7 +8,7 @@ m.InterpMethods = {
     {"manual bezier", "bezierInterp", "bezier"}
 }
 
-m.InterpDefault = "linear"
+m.InterpDefault = "cubic"
 
 function m:GenerateWidget(widget)
 	local bgframe = Instance.new("Frame")
@@ -20,7 +20,7 @@ function m:GenerateWidget(widget)
 
 
     -- dollycam
-    m.dollycamcollapse = wdglib.CollapsibleTitledSection.new("dollycam", "dollycam", true, true, false)
+    m.dollycamcollapse = wdglib.CollapsibleTitledSection.new("dollycam", "Dollycam", true, true, false)
     m.listFrame:AddChild(m.dollycamcollapse:GetSectionFrame())
     
     m.pathDropdown = wdglib.DropdownMenu.new("pathDropdown", "Paths", {})
@@ -65,27 +65,30 @@ function m:GenerateWidget(widget)
     m.runPath.Size = UDim2.new(1, 0, 0, 30)
     m.runPath.Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.cinepasscollapse = wdglib.CollapsibleTitledSection.new("cinepass", "passes", true, true, true)
+    m.cinepasscollapse = wdglib.CollapsibleTitledSection.new("cinepass", "Passes", true, true, true)
     m.cinepasscollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     -- lighting
-    m.lightingcollapse = wdglib.CollapsibleTitledSection.new("lighting", "lighting", true, true, true)
+    m.lightingcollapse = wdglib.CollapsibleTitledSection.new("lighting", "Lighting", true, true, true)
     m.listFrame:AddChild(m.lightingcollapse:GetSectionFrame())
 
 
     -- poses
-    m.posetoolcollapse = wdglib.CollapsibleTitledSection.new("posetool", "posing", true, true, true)
+    m.posetoolcollapse = wdglib.CollapsibleTitledSection.new("posetool", "Posing", true, true, true)
     m.listFrame:AddChild(m.posetoolcollapse:GetSectionFrame())
 
 
-    -- greenscreen
-    m.gstoolcollapse = wdglib.CollapsibleTitledSection.new("gstool", "greenscreens", true, true, true)
-    m.listFrame:AddChild(m.gstoolcollapse:GetSectionFrame())
-
-
     -- weapons & skins
-    m.camotoolcollapse = wdglib.CollapsibleTitledSection.new("camotool", "weapons & camos", true, true, true)
+    m.camotoolcollapse = wdglib.CollapsibleTitledSection.new("camotool", "Weapons & Camos", true, true, true)
     m.listFrame:AddChild(m.camotoolcollapse:GetSectionFrame())
+
+    -- settings
+    m.settingscollapse = wdglib.CollapsibleTitledSection.new("settings", "Settings", true, true, true)
+    m.listFrame:AddChild(m.settingscollapse:GetSectionFrame())
+
+    m.autoreorder = wdglib.LabeledCheckbox.new("autoreorder", "Auto Point Ordering", true, false)
+    m.autoreorder:GetFrame().Parent = m.settingscollapse:GetContentsFrame()
+
 
     m.listFrame:AddBottomPadding()
     m.listFrame:GetFrame().Parent = m.scrollFrame:GetContentsFrame()
