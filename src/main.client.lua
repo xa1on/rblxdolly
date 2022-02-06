@@ -23,7 +23,8 @@ local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float,
 	150,
 	150)
 local widget = plugin:CreateDockWidgetPluginGui("RBLXMVM", widgetInfo)
-widget.Title = "RBLXMVM - something/xalon"
+local playerId = game:GetService("StudioService"):GetUserId()
+widget.Title = "RBLXMVM - " .. game:GetService("Players"):GetNameFromUserIdAsync(playerId)
 
 -- dependencies
 local moduledir = script.Parent.modules

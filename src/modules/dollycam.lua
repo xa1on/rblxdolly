@@ -219,12 +219,13 @@ function m.createControlPoints(point)
     local pointcf = point.CFrame
     local p1 = point:FindFirstChild("1")
     local p2 = point:FindFirstChild("2")
+    local offset = m.controlPointOffset
     if not p1 then
-        p1 = m.point(pointcf:ToWorldSpace(m.controlPointOffset:Inverse()), point, 1)
+        p1 = m.point(pointcf:ToWorldSpace(offset:Inverse()), point, 1)
         p1.Changed:Connect(function(property) pointChange(property, p1) end)
     end
     if not p2 then
-        p2 = m.point(pointcf:ToWorldSpace(m.controlPointOffset), point, 2)
+        p2 = m.point(pointcf:ToWorldSpace(offset), point, 2)
         p2.Changed:Connect(function(property) pointChange(property, p2) end)
     end
 end
