@@ -59,7 +59,22 @@ function m.catmullRomInterp(path, t)
 end
 m.cubicInterp = m.catmullRomInterp
 
-function m.interpolateCF(path, t, func)
+function m.fourpBezierInterp(path, t, control)
+    if not control then return m.catmullRomInterp(path, t) end
+    local p1 = path[1]
+    local p2 = path[2]
+    local c1 = control[1][2]
+    local c2 = control[2][1]
+    local l1 = m.lerp(p1, c1, t)
+    local l2 = m.lerp(c1, c2, t)
+    local l3 = m.lerp(c2, p2, t)
+    local a = m.lerp(l1, l2, t)
+    local b = m.lerp(l2, l3, t)
+    return m.lerp(a, b, t)
+end
+m.bezierInterp = m.fourpBezierInterp
+
+function m.interpolateCF(path, t, func, control)
     if not func then func = m.linearInterp end
     local pv = {}
     local lv = {}
@@ -67,10 +82,12 @@ function m.interpolateCF(path, t, func)
         pv[i] = v.Position
         lv[i] = v.LookVector
     end
-    local newpv = func(pv, t)
+    local newpv = func(pv, t, control)
     local newlv = func(lv, t)
     return CFrame.new(newpv, newpv + newlv)
 end
+
+
 
 function m.pathInterp(points, t, func)
     if #points <= 0 then
@@ -83,11 +100,16 @@ function m.pathInterp(points, t, func)
             local cframelist = {}
             local fovlist = {}
             local rolllist = {}
+            local ctrllist = {}
             for i = -1,2,1 do
                 if points[index+i] then
                     cframelist[i+1] = points[index+i].CFrame
                     fovlist[i+1] = points[index+i].FOV.Value
                     rolllist[i+1] = points[index+i].Roll.Value
+                    ctrllist[i+1] = {}
+                    for _, v in pairs(points[index+i]:GetChildren()) do
+                        if v:IsA("BasePart") then ctrllist[i+1][tonumber(v.Name)] = v.Position end
+                    end
                 end
             end
             local dist = m.defaultTiming
@@ -96,7 +118,7 @@ function m.pathInterp(points, t, func)
                 current_t = current_t - dist
             else
                 return {false,
-                m.interpolateCF(cframelist, progression, func),
+                m.interpolateCF(cframelist, progression, func, ctrllist),
                 func(fovlist, progression),
                 func(rolllist, progression)}
             end

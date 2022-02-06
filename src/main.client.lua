@@ -61,7 +61,7 @@ dep.dollycam.resetTimescale()
 
 -- DOLLYCAM
 
-dep.dollycam.interpMethod = dep.interp[wdg.interpDropdown:GetChoice()]
+dep.dollycam.interpMethod = wdg.interpDropdown:GetChoice()
 
 dep.RunService.Heartbeat:Connect(dep.dollycam.preview)
 wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(dep.dollycam.reloadDropdown)
@@ -156,7 +156,10 @@ end)
 
 wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
-        dep.dollycam.interpMethod = dep.interp[newinterp]
+        dep.dollycam.interpMethod = newinterp
+        if newinterp == "bezierInterp" then
+            dep.dollycam.initBezier()
+        end
         dep.dollycam.renderPath()
     end
 end)

@@ -32,6 +32,8 @@ m.pointDir = nil
 m.allowReorder = true
 m.reordering = false
 
+m.controlPointOffset = CFrame.new(10, 0, 0)
+
 function m.notnill(inst)
     if not inst then
         return false
@@ -109,8 +111,7 @@ function m.insertPoint(point)
     for index = 1, #points do
         local i = points[index]
         if tonumber(i.Name) then
-            if shift then
-                i.Name = tonumber(i.Name) + 1
+            if shift then i.Name = tonumber(i.Name) + 1
             else
                 if i.Name == point.Name then
                     shift = true
@@ -121,9 +122,7 @@ function m.insertPoint(point)
     end
     point.Parent = m.pointDir
     m.reordering = false
-    if m.allowReorder then
-        m.renamePoints()
-    end
+    if m.allowReorder then m.renamePoints() end
 end
 
 local function pointChange(property, point)
@@ -190,19 +189,53 @@ function m.pointGui(parent, name, type, adornee)
         guipoint.Size = UDim2.new(0.6, 0, 0.6, 0)
         guiframe.BackgroundColor3 = Color3.new(1,0,0)
     elseif type == "ctrl" then
-        guipoint.Size = UDim2.new(0.4, 0, 0.4, 0)
-        guiframe.BackgroundColor3 = Color3.new(1,0.5,0)
-    elseif type == "inbetween" then
+        guipoint.Size = UDim2.new(0.3, 0, 0.3, 0)
+        guiframe.BackgroundColor3 = Color3.new(0,0,1)
+    elseif type == "ctrlpath" then
         guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
-        guiframe.BackgroundColor3 = Color3.new(0,1,0)
+        guiframe.BackgroundColor3 = Color3.new(0,0.5,1)
+    elseif type == "path" then
+        guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
+        guiframe.BackgroundColor3 = Color3.new(1,0.5,0)
     else
         guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
-        guiframe.BackgroundColor3 = Color3.new(0,1,0)
+        guiframe.BackgroundColor3 = Color3.new(1,0.5,0)
     end
     guiframe.Size = UDim2.new(1,0,1,0)
     guiframe.BorderSizePixel = 0
     if adornee then guipoint.Adornee = adornee end
     return guipoint
+end
+
+function m.createLine(p1, p2, type, num)
+    if not num then num = 5 end
+    for i = 1, num do
+        local newPoint = m.point(CFrame.new(interp.linearInterp({p1.CFrame.Position, p2.CFrame.Position}, i * 1/num)), m.renderDir, p1.Name, true)
+        m.pointGui(newPoint, p1.Name, type, newPoint)
+    end
+end
+
+function m.createControlPoints(point)
+    local pointcf = point.CFrame
+    local p1 = point:FindFirstChild("1")
+    local p2 = point:FindFirstChild("2")
+    if not p1 then
+        p1 = m.point(pointcf:ToWorldSpace(m.controlPointOffset:Inverse()), point, 1)
+        p1.Changed:Connect(function(property) pointChange(property, p1) end)
+    end
+    if not p2 then
+        p2 = m.point(pointcf:ToWorldSpace(m.controlPointOffset), point, 2)
+        p2.Changed:Connect(function(property) pointChange(property, p2) end)
+    end
+end
+
+function m.initBezier()
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    for _, v in pairs(m.pointDir:GetChildren()) do
+        if v:IsA("BasePart") then
+            m.createControlPoints(v)
+        end
+    end
 end
 
 function m.renderPath()
@@ -216,14 +249,27 @@ function m.renderPath()
         newPoint.Name = "Point " .. i.Name
         newPoint.Parent = m.renderDir
         m.pointGui(newPoint, nil, "point", newPoint)
+        if  m.interpMethod == "bezierInterp" then
+            if i:FindFirstChild("1") then
+                for _, v in pairs(i:GetChildren()) do
+                    if v:IsA("BasePart") then
+                        local newCtrl = v:Clone()
+                        newCtrl.Name = i.Name.."_"..v.Name
+                        newCtrl.Parent = m.renderDir
+                        m.pointGui(newCtrl, nil, "ctrl", newCtrl)
+                        m.createLine(newCtrl, newPoint, "ctrlpath")
+                    end
+                end
+            end
+        end
     end
     local t = 1
-    local betweenCF = interp.pathInterp(m.grabPoints(), t / 3, m.interpMethod)
+    local betweenCF = interp.pathInterp(m.grabPoints(), t / 5, interp[m.interpMethod])
     while betweenCF[1] ~= true do
         local newPoint = m.point(betweenCF[2], m.renderDir, t, true)
-        m.pointGui(newPoint, t, "inbetween", newPoint)
+        m.pointGui(newPoint, t, "path", newPoint)
         t = t + 1
-        betweenCF = interp.pathInterp(m.grabPoints(), t / 3, m.interpMethod)
+        betweenCF = interp.pathInterp(m.grabPoints(), t / 5, interp[m.interpMethod])
     end
 end
 
@@ -240,6 +286,7 @@ function m.createPoint()
     local fovValue = Instance.new("NumberValue", newPoint)
         fovValue.Name = "FOV"
         fovValue.Value = Camera.FieldOfView
+    m.createControlPoints(newPoint)
     HistoryService:SetWaypoint("Created Point")
     m:renderPath()
 end
@@ -271,7 +318,7 @@ end
 function m.preview(step)
     if not m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime * m.timescale, m.interpMethod)
+    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime * m.timescale, interp[m.interpMethod])
     if previewLocation[1] then m.stopPreview() else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Scriptable
