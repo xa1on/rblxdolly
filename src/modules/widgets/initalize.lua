@@ -65,6 +65,22 @@ function m:GenerateWidget(widget)
     m.runPath.Size = UDim2.new(1, 0, 0, 30)
     m.runPath.Parent = m.dollycamcollapse:GetContentsFrame()
 
+    m.manualbeziercollapse = wdglib.CollapsibleTitledSection.new("manualbeziercollapse", "Manual Bezier Option", true, true, false)
+    m.manualbeziercollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
+
+    m.automatectrlbezier = wdglib.LabeledCheckbox.new("automatectrlbezier", "Automate Bezier Path", true, false)
+    m.automatectrlbezier:GetFrame().Parent = m.manualbeziercollapse:GetContentsFrame()
+
+    m.lockctrlbezier = wdglib.LabeledCheckbox.new("lockctrlbezier", "Lock Control Points", true, false)
+    m.lockctrlbezier:GetFrame().Parent = m.manualbeziercollapse:GetContentsFrame()
+
+    m.normalizectrlbezier = wdglib.CustomTextButton.new("normalizectrlbezier", "Normalize Control Points"):GetButton()
+    m.normalizectrlbezier.Size = UDim2.new(1, 0, 0, 25)
+    m.normalizectrlbezier.Parent = m.manualbeziercollapse:GetContentsFrame()
+
+
+
+
     m.cinepasscollapse = wdglib.CollapsibleTitledSection.new("cinepass", "Passes", true, true, true)
     m.cinepasscollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 

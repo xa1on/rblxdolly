@@ -151,6 +151,7 @@ end)
 wdg["pathDropdown"]:SetValueChangedFunction(function(newpath)
     if not dep.dollycam.playing then
         wdg["pathNameInput"]:SetValue(newpath.Name)
+        dep.dollycam.checkDir()
         dep.dollycam.renderPath()
     end
 end)
@@ -158,9 +159,6 @@ end)
 wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
         dep.dollycam.interpMethod = newinterp
-        if newinterp == "bezierInterp" then
-            dep.dollycam.initBezier()
-        end
         dep.dollycam.renderPath()
     end
 end)
@@ -171,3 +169,13 @@ wdg["autoreorder"]:SetValueChangedFunction(function(newvalue)
         dep.dollycam.renamePoints()
     end
 end)
+
+
+local function normalizectrlbezier()
+    if not dep.dollycam.playing then
+        dep.dollycam.normalizeCtrl()
+        dep.dollycam.renderPath()
+    end
+end
+wdg["normalizectrlbezier"].MouseButton1Down:Connect(normalizectrlbezier)
+createAction("normalizectrlbezier", "Normalize Control Points", "Normalizes Control Points", "", normalizectrlbezier)

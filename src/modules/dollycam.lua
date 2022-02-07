@@ -164,7 +164,7 @@ function m.particleTimescale(ts)
     end
 end
 
-function m.point(cf, parent, name, locked)
+function m.point(cf, parent, name, locked, transparent)
     local newPoint = Instance.new("Part", parent)
     newPoint.Size = Vector3.new(1,1,1)
     newPoint.Name = name
@@ -172,7 +172,11 @@ function m.point(cf, parent, name, locked)
     newPoint.TopSurface = Enum.SurfaceType.SmoothNoOutlines
     newPoint.BottomSurface = Enum.SurfaceType.SmoothNoOutlines
     newPoint.FrontSurface = Enum.SurfaceType.Studs
-    newPoint.Transparency = 1
+    if not transparent then
+        newPoint.Transparency = 1
+    else
+        newPoint.Transparency = transparent
+    end
     if not locked then
         newPoint.Changed:Connect(function(property) pointChange(property, newPoint) end)
     else newPoint.Locked = true end
@@ -215,27 +219,39 @@ function m.createLine(p1, p2, type, num)
     end
 end
 
-function m.createControlPoints(point)
+function m.createControlPoints(point, previous)
+    if not previous then return end
     local pointcf = point.CFrame
+    local previouscf = previous.CFrame
+    local relativeX1 = (pointcf:ToObjectSpace(previouscf).X)
+    local offset1
+    if relativeX1 >= 0 then offset1 = m.controlPointOffset
+    else offset1 = m.controlPointOffset:Inverse() end
     local p1 = point:FindFirstChild("1")
-    local p2 = point:FindFirstChild("2")
-    local offset = m.controlPointOffset
     if not p1 then
-        p1 = m.point(pointcf:ToWorldSpace(offset:Inverse()), point, 1)
+        p1 = m.point(pointcf:ToWorldSpace(offset1), point, 1)
         p1.Changed:Connect(function(property) pointChange(property, p1) end)
     end
+    local offset2
+    if previous:FindFirstChild("1") then
+        local relativeX2 = previouscf:ToObjectSpace(previous:FindFirstChild("1").CFrame).X
+        if relativeX2 >= 0 then offset2 = m.controlPointOffset:Inverse()
+        else offset2 = m.controlPointOffset end
+    else
+        offset2 = offset1:Inverse()
+    end
+    local p2 = previous:FindFirstChild("2")
     if not p2 then
-        p2 = m.point(pointcf:ToWorldSpace(offset), point, 2)
+        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, 2)
         p2.Changed:Connect(function(property) pointChange(property, p2) end)
     end
 end
 
-function m.initBezier()
+function m.normalizeCtrl()
     if not m.notnill(m.pointDir) then m.checkDir() end
-    for _, v in pairs(m.pointDir:GetChildren()) do
-        if v:IsA("BasePart") then
-            m.createControlPoints(v)
-        end
+    local points = m.grabPoints()
+    for _, i in pairs(points) do
+        
     end
 end
 
@@ -250,8 +266,8 @@ function m.renderPath()
         newPoint.Name = "Point " .. i.Name
         newPoint.Parent = m.renderDir
         m.pointGui(newPoint, nil, "point", newPoint)
-        if  m.interpMethod == "bezierInterp" then
-            if i:FindFirstChild("1") then
+        if m.interpMethod == "bezierInterp" then
+            if i:FindFirstChild("1") or i:FindFirstChild("2") then
                 for _, v in pairs(i:GetChildren()) do
                     if v:IsA("BasePart") then
                         local newCtrl = v:Clone()
@@ -287,7 +303,7 @@ function m.createPoint()
     local fovValue = Instance.new("NumberValue", newPoint)
         fovValue.Name = "FOV"
         fovValue.Value = Camera.FieldOfView
-    m.createControlPoints(newPoint)
+    m.createControlPoints(newPoint, points[#points])
     HistoryService:SetWaypoint("Created Point")
     m:renderPath()
 end
