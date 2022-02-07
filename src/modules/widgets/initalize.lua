@@ -74,6 +74,10 @@ function m:GenerateWidget(widget)
     m.lockctrlbezier = wdglib.LabeledCheckbox.new("lockctrlbezier", "Lock Control Points", true, false)
     m.lockctrlbezier:GetFrame().Parent = m.manualbeziercollapse:GetContentsFrame()
 
+    m.clearctrlbezier = wdglib.CustomTextButton.new("clearctrlbezier", "Reset Control Points"):GetButton()
+    m.clearctrlbezier.Size = UDim2.new(1, 0, 0, 25)
+    m.clearctrlbezier.Parent = m.manualbeziercollapse:GetContentsFrame()
+
     m.normalizectrlbezier = wdglib.CustomTextButton.new("normalizectrlbezier", "Normalize Control Points"):GetButton()
     m.normalizectrlbezier.Size = UDim2.new(1, 0, 0, 25)
     m.normalizectrlbezier.Parent = m.manualbeziercollapse:GetContentsFrame()

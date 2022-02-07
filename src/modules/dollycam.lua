@@ -4,6 +4,7 @@ local m = {}
 local setRoll = require(script.Parent.setRoll)
 local interp = require(script.Parent.interpolation)
 local wdg = require(script.Parent.widgets.initalize)
+local util = require(script.Parent.util)
 
 local HistoryService = game:GetService("ChangeHistoryService")
 
@@ -23,6 +24,9 @@ m.renderDirName = "Render"
 m.pathsDirName = "Paths"
 m.pointDirName = "Points"
 
+m.startctrlName = 1
+m.endctrlName = 2
+
 m.mvmDir = nil
 m.renderDir = nil
 m.pathsDir = nil
@@ -32,7 +36,7 @@ m.pointDir = nil
 m.allowReorder = true
 m.reordering = false
 
-m.controlPointOffset = CFrame.new(10, 0, 0)
+m.clearing = false
 
 function m.notnill(inst)
     if not inst then
@@ -126,7 +130,8 @@ function m.insertPoint(point)
 end
 
 local function pointChange(property, point)
-    if property == "Name" then m.insertPoint(point) end
+    if m.playing or m.clearing then return end
+    if property == "Name" then m.insertPoint(point) end 
     m.renderPath()
 end
 
@@ -213,8 +218,9 @@ end
 
 function m.createLine(p1, p2, type, num)
     if not num then num = 5 end
-    for i = 1, num do
+    for i = 1, num - 1 do
         local newPoint = m.point(CFrame.new(interp.linearInterp({p1.CFrame.Position, p2.CFrame.Position}, i * 1/num)), m.renderDir, p1.Name, true)
+        newPoint.Size = Vector3.new(0.05,0.05,0.05)
         m.pointGui(newPoint, p1.Name, type, newPoint)
     end
 end
@@ -223,26 +229,21 @@ function m.createControlPoints(point, previous)
     if not previous then return end
     local pointcf = point.CFrame
     local previouscf = previous.CFrame
-    local relativeX1 = (pointcf:ToObjectSpace(previouscf).X)
-    local offset1
-    if relativeX1 >= 0 then offset1 = m.controlPointOffset
-    else offset1 = m.controlPointOffset:Inverse() end
-    local p1 = point:FindFirstChild("1")
+    local relative1 = pointcf:ToObjectSpace(previouscf)
+    local offset1 = CFrame.new(relative1.X/2, relative1.Y/2, relative1.Z/2)
+    local p1 = point:FindFirstChild(m.startctrlName)
     if not p1 then
-        p1 = m.point(pointcf:ToWorldSpace(offset1), point, 1)
+        p1 = m.point(pointcf:ToWorldSpace(offset1), point, m.startctrlName)
         p1.Changed:Connect(function(property) pointChange(property, p1) end)
     end
-    local offset2
-    if previous:FindFirstChild("1") then
-        local relativeX2 = previouscf:ToObjectSpace(previous:FindFirstChild("1").CFrame).X
-        if relativeX2 >= 0 then offset2 = m.controlPointOffset:Inverse()
-        else offset2 = m.controlPointOffset end
-    else
-        offset2 = offset1:Inverse()
+    local offset2 = offset1:Inverse()
+    if previous:FindFirstChild(m.startctrlName) then
+        local relative2 = previouscf:ToObjectSpace(previous:FindFirstChild(m.startctrlName).CFrame)
+        offset2 = CFrame.new(-relative2.X, -relative2.Y, -relative2.Z)
     end
-    local p2 = previous:FindFirstChild("2")
+    local p2 = previous:FindFirstChild(m.endctrlName)
     if not p2 then
-        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, 2)
+        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, m.endctrlName)
         p2.Changed:Connect(function(property) pointChange(property, p2) end)
     end
 end
@@ -251,42 +252,42 @@ function m.normalizeCtrl()
     if not m.notnill(m.pointDir) then m.checkDir() end
     local points = m.grabPoints()
     for _, i in pairs(points) do
-        
-    end
-end
+        local icf = i.CFrame
+        local c1 = i:FindFirstChild(m.startctrlName)
+        local c2 = i:FindFirstChild(m.endctrlName)
+        if c1 and c2 then
+            local cf = {c1.CFrame, c2.CFrame}
 
-function m.renderPath()
-    if m.playing then return end
-    if not m.mvmDir then m.checkDir() return end
-    if m.renderDir then m.renderDir:ClearAllChildren() end
-    if not m.notnill(m.pointDir) then return end
-    for _, i in pairs(m.pointDir:GetChildren()) do
-        local newPoint = i:Clone()
-        newPoint:ClearAllChildren()
-        newPoint.Name = "Point " .. i.Name
-        newPoint.Parent = m.renderDir
-        m.pointGui(newPoint, nil, "point", newPoint)
-        if m.interpMethod == "bezierInterp" then
-            if i:FindFirstChild("1") or i:FindFirstChild("2") then
-                for _, v in pairs(i:GetChildren()) do
-                    if v:IsA("BasePart") then
-                        local newCtrl = v:Clone()
-                        newCtrl.Name = i.Name.."_"..v.Name
-                        newCtrl.Parent = m.renderDir
-                        m.pointGui(newCtrl, nil, "ctrl", newCtrl)
-                        m.createLine(newCtrl, newPoint, "ctrlpath")
-                    end
-                end
-            end
         end
     end
-    local t = 1
-    local betweenCF = interp.pathInterp(m.grabPoints(), t / 5, interp[m.interpMethod])
-    while betweenCF[1] ~= true do
-        local newPoint = m.point(betweenCF[2], m.renderDir, t, true)
-        m.pointGui(newPoint, t, "path", newPoint)
-        t = t + 1
-        betweenCF = interp.pathInterp(m.grabPoints(), t / 5, interp[m.interpMethod])
+    m.renderPath()
+end
+
+function m.clearCtrl()
+    m.clearing = true
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    local points = m.grabPoints()
+    for _, i in pairs(points) do
+        local c1 = i:FindFirstChild(m.startctrlName)
+        local c2 = i:FindFirstChild(m.endctrlName)
+        if c1 then c1:Destroy() end
+        if c2 then c2:Destroy() end
+    end
+    m.clearing = false
+    m.renderPath()
+end
+
+function m.renderPath(range)
+    if m.playing or m.clearing then return end
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not range then
+        if m.renderDir then m.renderDir:ClearAllChildren() end
+        local points = m.grabPoints()
+        for index, point in pairs(points) do
+            local newPoint = point:Clone()
+            point:ClearAllChildren()
+            newPoint.Name = 
+        end
     end
 end
 
@@ -311,6 +312,7 @@ end
 function m.runPath()
     if m.playing then return end
     wdg.autoreorder:SetDisabled(true)
+    wdg.automatectrlbezier:SetDisabled(true)
     m.checkDir()
     m.renderDir:ClearAllChildren()
     previewTime = 0
@@ -323,6 +325,7 @@ end
 
 function m.stopPreview()
     wdg.autoreorder:SetDisabled(false)
+    wdg.automatectrlbezier:SetDisabled(false)
     m.playing = false
     local Camera = workspace.CurrentCamera
     Camera.CameraType = Enum.CameraType.Custom
@@ -344,6 +347,20 @@ function m.preview(step)
         Camera.CFrame = previewLocation[2]
     end
     previewTime = previewTime + step
+end
+
+m.resetTimescale()
+
+m.interpMethod = wdg.interpDropdown:GetChoice()
+
+local RunService = game:GetService("RunService")
+
+RunService.Heartbeat:Connect(m.preview)
+wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
+
+if workspace:FindFirstChild(m.mvmDirName) then
+    m.reconnectPoints()
+    m.renderPath()
 end
 
 return m

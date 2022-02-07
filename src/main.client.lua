@@ -56,22 +56,6 @@ b_toggle.Click:Connect(function() widget.Enabled = not widget.Enabled end)
 createAction("toggleWidget", "Toggle Widget", "Toggles widget", "", function() widget.Enabled = not widget.Enabled end)
 
 
-dep.dollycam.resetTimescale()
-
-
-
--- DOLLYCAM
-
-dep.dollycam.interpMethod = wdg.interpDropdown:GetChoice()
-
-dep.RunService.Heartbeat:Connect(dep.dollycam.preview)
-wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(dep.dollycam.reloadDropdown)
-
-if workspace:FindFirstChild(dep.dollycam.mvmDirName) then
-    dep.dollycam.reconnectPoints()
-    dep.dollycam.renderPath()
-end
-
 
 
 -- creating points
@@ -159,6 +143,10 @@ end)
 wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
         dep.dollycam.interpMethod = newinterp
+        if newinterp == "bezierInterp" and wdg.automatectrlbezier:GetValue() then
+            dep.dollycam.clearCtrl()
+            return
+        end
         dep.dollycam.renderPath()
     end
 end)
@@ -174,8 +162,15 @@ end)
 local function normalizectrlbezier()
     if not dep.dollycam.playing then
         dep.dollycam.normalizeCtrl()
-        dep.dollycam.renderPath()
     end
 end
 wdg["normalizectrlbezier"].MouseButton1Down:Connect(normalizectrlbezier)
 createAction("normalizectrlbezier", "Normalize Control Points", "Normalizes Control Points", "", normalizectrlbezier)
+
+local function clearctrlbezier()
+    if not dep.dollycam.playing then
+        dep.dollycam.clearCtrl()
+    end
+end
+wdg["clearctrlbezier"].MouseButton1Down:Connect(clearctrlbezier)
+createAction("clearctrlbezier", "Reset Control Points", "Resets Control Points", "", clearctrlbezier)
