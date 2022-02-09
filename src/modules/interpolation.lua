@@ -87,7 +87,36 @@ function m.interpolateCF(path, t, func, control)
     return CFrame.new(newpv, newpv + newlv)
 end
 
-
+function m.segmentInterp(points, t, func)
+    points[0] = points[0] or points[1]
+    points[2] = points[2] or points[1]
+    points[3] = points[3] or points[2]
+    local cframelist = {}
+    local fovlist = {}
+    local rolllist = {}
+    local ctrllist = {}
+    for i = 0,3,1 do
+        if points[i] then
+            cframelist[i] = points[i].CFrame
+            fovlist[i] = points[i].FOV.Value
+            rolllist[i] = points[i].Roll.Value
+            ctrllist[i] = {}
+            for _, v in pairs(points[i]:GetChildren()) do
+                if v:IsA("BasePart") then ctrllist[i][tonumber(v.Name)] = v.Position end
+            end
+        end
+    end
+    local dist = m.defaultTiming
+    local progression = t/dist
+    if progression >= 1 then
+        return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value}
+    else
+        return {false,
+        m.interpolateCF(cframelist, progression, func, ctrllist),
+        func(fovlist, progression),
+        func(rolllist, progression)}
+    end
+end
 
 function m.pathInterp(points, t, func)
     if #points <= 0 then
@@ -97,36 +126,23 @@ function m.pathInterp(points, t, func)
     for index, current in pairs(points) do
         local next = points[index+1]
         if next then
-            local cframelist = {}
-            local fovlist = {}
-            local rolllist = {}
-            local ctrllist = {}
+            local pointlist = {}
             for i = -1,2,1 do
                 if points[index+i] then
-                    cframelist[i+1] = points[index+i].CFrame
-                    fovlist[i+1] = points[index+i].FOV.Value
-                    rolllist[i+1] = points[index+i].Roll.Value
-                    ctrllist[i+1] = {}
-                    for _, v in pairs(points[index+i]:GetChildren()) do
-                        if v:IsA("BasePart") then ctrllist[i+1][tonumber(v.Name)] = v.Position end
-                    end
+                    pointlist[i+1] = points[index+i]
                 end
             end
             local dist = m.defaultTiming
-            local progression = current_t/dist
-            if progression >= 1 then
+            local segInterp = m.segmentInterp(pointlist, current_t, func)
+            if segInterp[1] then
                 current_t = current_t - dist
             else
-                return {false,
-                m.interpolateCF(cframelist, progression, func, ctrllist),
-                func(fovlist, progression),
-                func(rolllist, progression)}
+                return segInterp
             end
         end
     end
     local lastPoint = points[#points]
     return {true, lastPoint.CFrame, lastPoint.FOV.Value, lastPoint.Roll.Value}
 end
-
 
 return m

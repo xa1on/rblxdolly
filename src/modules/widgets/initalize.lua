@@ -26,7 +26,7 @@ function m:GenerateWidget(widget)
     m.pathDropdown = wdglib.DropdownMenu.new("pathDropdown", "Paths", {})
     m.pathDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.pathNameInput = wdglib.LabeledTextInput.new("pathNameInput", "Path Name", "Name")
+    m.pathNameInput = wdglib.LabeledTextInput.new("pathNameInput", "Path Name")
     m.pathNameInput:SetMaxGraphemes(30)
     m.pathNameInput:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 

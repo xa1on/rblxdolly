@@ -5,6 +5,7 @@ local setRoll = require(script.Parent.setRoll)
 local interp = require(script.Parent.interpolation)
 local wdg = require(script.Parent.widgets.initalize)
 local util = require(script.Parent.util)
+local repStorage = game:GetService("ReplicatedStorage")
 
 local HistoryService = game:GetService("ChangeHistoryService")
 
@@ -33,17 +34,20 @@ m.pathsDir = nil
 m.currentDir = nil
 m.pointDir = nil
 
-m.allowReorder = true
-m.reordering = false
+m.unloadedMvmDir = nil
+m.unloadedPathsDir = nil
 
-m.clearing = false
+
+m.allowReorder = true
+
+m.ignorechange = false
 
 function m.notnill(inst)
     if not inst then
         return false
     end
     if inst.Parent then
-        if inst.Parent == workspace then
+        if inst.Parent == workspace or repStorage then
             return true
         else 
             return m.notnill(inst.Parent)
@@ -53,10 +57,27 @@ function m.notnill(inst)
     end
 end
 
+function m.unloadPaths()
+    m.ignorechange = true
+    if not (m.notnill(m.pathsDir) and m.notnill(m.unloadedPathsDir)) then m.checkDir() end
+    for _, i in pairs(m.pathsDir:GetChildren()) do
+        i.Parent = m.unloadedPathsDir
+    end
+    m.ignorechange = false
+end
+
+function m.loadPath(path)
+    m.ignorechange = true
+    if not m.notnill(m.pathsDir) then m.checkDir() end
+    path.Parent = m.pathsDir
+    m.ignorechange = false
+end
+
 function m.grabPoints(path)
     if not path then path = m.pointDir end
     local points = {}
     local sort = {}
+    if not path then return {} end
     for _, i in pairs(path:GetChildren()) do
         if tonumber(i.Name) then sort[#sort+1] = tonumber(i.Name) end
     end
@@ -65,12 +86,37 @@ function m.grabPoints(path)
     return points
 end
 
+function m.lockPoints()
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not m.pointDir then return end
+    for _, i in pairs(m.pointDir:GetDescendants()) do
+        if i:IsA("BasePart") then
+            i.Locked = true
+        end
+    end
+end
+
+function m.unlockPoints()
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not m.pointDir then return end
+    for _, i in pairs(m.pointDir:GetDescendants()) do
+        if i:IsA("BasePart") then
+            i.Locked = false
+        end
+    end
+end
+
 function m.reloadDropdown()
     wdg.pathDropdown:RemoveAll()
     if not m.mvmDir then m.checkDir() return end
     for index, inst in pairs(m.pathsDir:GetChildren()) do
         if inst.Name ~= m.renderDirName then
             wdg.pathDropdown:AddSelection({inst.Name, inst, tostring(index)})
+        end
+    end
+    for index, inst in pairs(m.unloadedPathsDir:GetChildren()) do
+        if inst.Name ~= m.renderDirName then
+            wdg.pathDropdown:AddSelection({inst.Name, inst, tostring(index + #m.pathsDir:GetChildren())})
         end
     end
 end
@@ -87,17 +133,29 @@ function m.createIfNotExist(parent, type, name, connection, func)
     return newInst
 end
 
+local function tablechange()
+    if m.playing or m.ignorechange then return end
+    m.renderPath()
+    m.reloadDropdown()
+end
+
 function m.checkDir()
+    m.unloadedMvmDir = m.createIfNotExist(repStorage, "Folder", m.mvmDirName)
+    m.unloadedPathsDir = m.createIfNotExist(m.unloadedMvmDir, "Folder", m.pathsDirName)
     m.mvmDir = m.createIfNotExist(workspace, "Folder", m.mvmDirName)
     m.renderDir = m.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
     m.pathsDir = m.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
-    m.currentDir = m.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", function()
-        m.renderPath()
+    if #wdg.pathNameInput:GetValue() > 0 then
+        if not m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue()) then
+            m.unloadPaths()
+            m.currentDir = m.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", tablechange)
+        else
+            m.currentDir = m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue())
+        end
+        m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
-    end)
-    m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
-    m.reloadDropdown()
-    wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
+        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
+    end
 end
 
 function m.renamePoints()
@@ -107,8 +165,8 @@ function m.renamePoints()
 end
 
 function m.insertPoint(point)
-    if m.reordering then return end
-    m.reordering = true
+    if m.ignorechange then return end
+    m.ignorechange = true
     point.Parent = nil
     local shift = false
     local points = m.grabPoints()
@@ -125,25 +183,31 @@ function m.insertPoint(point)
         end
     end
     point.Parent = m.pointDir
-    m.reordering = false
+    m.ignorechange = false
     if m.allowReorder then m.renamePoints() end
 end
 
 local function pointChange(property, point)
-    if m.playing or m.clearing then return end
-    if property == "Name" then m.insertPoint(point) end 
-    m.renderPath()
+    if m.playing or m.ignorechange then return end
+    if property == "CFrame" then
+        m.renderPoint(point)
+    end
+    if property == "Name" then m.insertPoint(point) end
 end
 
 function m.reconnectPoints()
     m.checkDir()
-    for _, i in pairs(m.mvmDir:GetDescendants()) do
+    m.pathsDir.AncestryChanged:Connect(tablechange)
+    for _, i in pairs(m.pathsDir:GetDescendants()) do
         if i:IsA("BasePart") and not i.Locked then i.Changed:Connect(function(property) pointChange(property, i) end) end
         if i:IsA("Folder") and i.Name ~= m.renderDirName then
-            i.AncestryChanged:Connect(function()
-                m.renderPath()
-                m.reloadDropdown()
-            end)
+            i.AncestryChanged:Connect(tablechange)
+        end
+    end
+    for _, i in pairs(m.unloadedPathsDir:GetDescendants()) do
+        if i:IsA("BasePart") and not i.Locked then i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("Folder") and i.Name ~= m.renderDirName then
+            i.AncestryChanged:Connect(tablechange)
         end
     end
 end
@@ -216,10 +280,10 @@ function m.pointGui(parent, name, type, adornee)
     return guipoint
 end
 
-function m.createLine(p1, p2, type, num)
+function m.createLine(p1, p2, type, parent, num)
     if not num then num = 5 end
     for i = 1, num - 1 do
-        local newPoint = m.point(CFrame.new(interp.linearInterp({p1.CFrame.Position, p2.CFrame.Position}, i * 1/num)), m.renderDir, p1.Name, true)
+        local newPoint = m.point(CFrame.new(interp.linearInterp({p1.CFrame.Position, p2.CFrame.Position}, i * 1/num)), parent, p1.Name, true)
         newPoint.Size = Vector3.new(0.05,0.05,0.05)
         m.pointGui(newPoint, p1.Name, type, newPoint)
     end
@@ -264,7 +328,7 @@ function m.normalizeCtrl()
 end
 
 function m.clearCtrl()
-    m.clearing = true
+    m.ignorechange = true
     if not m.notnill(m.pointDir) then m.checkDir() end
     local points = m.grabPoints()
     for _, i in pairs(points) do
@@ -273,22 +337,102 @@ function m.clearCtrl()
         if c1 then c1:Destroy() end
         if c2 then c2:Destroy() end
     end
-    m.clearing = false
+    m.ignorechange = false
     m.renderPath()
 end
 
-function m.renderPath(range)
-    if m.playing or m.clearing then return end
+function m.renderSegment(target, parent)
     if not m.notnill(m.pointDir) then m.checkDir() end
-    if not range then
-        if m.renderDir then m.renderDir:ClearAllChildren() end
-        local points = m.grabPoints()
-        for index, point in pairs(points) do
-            local newPoint = point:Clone()
-            point:ClearAllChildren()
-            newPoint.Name = 
+    local points = m.grabPoints()
+    local parent = parent or m.renderDir:FindFirstChild(target.Name)
+    local index
+    for ind, point in pairs(points)do
+        if point.Name == target.Name then
+            index = ind
+            break
         end
     end
+    if points[index + 1] then
+        if parent then
+            for _, i in pairs(parent:GetChildren()) do
+                if tonumber(i.Name) then
+                    i:Destroy()
+                end
+            end
+        end
+        local renderPoints = {}
+        for i = -1,2,1 do
+            if points[index+i] then
+                renderPoints[i+1] = points[index+i]
+            end
+        end
+        local t = 1
+        local betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
+        while betweenCF[1] ~= true do
+            local newBTP = m.point(betweenCF[2], parent, t, true)
+            newBTP.Size = Vector3.new(0.05,0.05,0.05)
+            m.pointGui(newBTP, t, "path", newBTP)
+            t = t + 1
+            betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
+        end
+    end
+end
+
+function m.renderPoint(point)
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    if point.Parent and point.Parent.Name ~= m.pointDirName then m.renderPoint(point.Parent) return end
+    local points = m.grabPoints()
+    local index
+    local parent = parent or m.renderDir:FindFirstChild(point.Name)
+    if parent then parent:Destroy() end
+    for ind, inst in pairs(points) do
+        if inst.Name == point.Name then
+            index = ind
+            break
+        end
+    end
+    local newPoint = point:Clone()
+    newPoint:ClearAllChildren()
+    newPoint.Parent = m.renderDir
+    m.pointGui(newPoint, nil, "point", newPoint)
+    if m.interpMethod == "bezierInterp" then
+        if not (point:FindFirstChild(m.endctrlName) and point:FindFirstChild(m.startctrlName)) then
+            m.createControlPoints(point, points[index-1])
+            if points[index + 1] then
+                m.createControlPoints(points[index + 1], point)
+            end
+        end
+        for _, ctrl in pairs(point:GetChildren()) do
+            if ctrl:IsA("BasePart") then
+                local newCtrl = ctrl:Clone()
+                newCtrl.Name = point.Name.."_"..ctrl.Name
+                newCtrl.Parent = newPoint
+                m.pointGui(newCtrl, nil, "ctrl", newCtrl)
+                m.createLine(newCtrl, newPoint, "ctrlpath", newPoint)
+            end
+        end
+    end
+    local segmentRange = {-1, 0}
+    if m.interpMethod == "cubicInterp" then
+        segmentRange = {-2, 1}
+    end
+    for i = index + segmentRange[1], index + segmentRange[2] do
+        if points[i] then
+            m.renderSegment(points[i], m.renderDir:FindFirstChild(points[i].Name))
+        end
+    end
+    return newPoint
+end
+
+function m.renderPath()
+    if m.playing or m.ignorechange then return end
+    if not m.notnill(m.pointDir) then m.checkDir() end
+    if m.renderDir then m.renderDir:ClearAllChildren() end
+    local points = m.grabPoints()
+    for _, point in pairs(points) do
+        m.renderPoint(point)
+    end
+    return
 end
 
 function m.createPoint()
@@ -305,7 +449,6 @@ function m.createPoint()
         fovValue.Name = "FOV"
         fovValue.Value = Camera.FieldOfView
     m.createControlPoints(newPoint, points[#points])
-    HistoryService:SetWaypoint("Created Point")
     m:renderPath()
 end
 
@@ -349,18 +492,19 @@ function m.preview(step)
     previewTime = previewTime + step
 end
 
+
 m.resetTimescale()
-
 m.interpMethod = wdg.interpDropdown:GetChoice()
-
 local RunService = game:GetService("RunService")
 
 RunService.Heartbeat:Connect(m.preview)
 wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
 
 if workspace:FindFirstChild(m.mvmDirName) then
-    m.reconnectPoints()
     m.renderPath()
+    m.reconnectPoints()
+    m.unlockPoints()
 end
+
 
 return m

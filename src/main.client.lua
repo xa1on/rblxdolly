@@ -63,6 +63,7 @@ local function createPoint()
     if not dep.dollycam.playing then
         dep.dollycam.createPoint()
     end
+    dep.HistoryService:SetWaypoint("Created Point")
 end
 wdg["createPoint"].MouseButton1Down:Connect(createPoint)
 createAction("createPoint", "Create Point", "Creates a campath point", "", createPoint)
@@ -134,9 +135,14 @@ end)
 
 wdg["pathDropdown"]:SetValueChangedFunction(function(newpath)
     if not dep.dollycam.playing then
+        dep.dollycam.lockPoints()
+        dep.dollycam.unloadPaths()
         wdg["pathNameInput"]:SetValue(newpath.Name)
+        dep.dollycam.loadPath(dep.dollycam.unloadedPathsDir:FindFirstChild(newpath.Name))
         dep.dollycam.checkDir()
         dep.dollycam.renderPath()
+        dep.dollycam.unlockPoints()
+        dep.HistoryService:SetWaypoint("Switched paths")
     end
 end)
 
@@ -148,6 +154,7 @@ wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
             return
         end
         dep.dollycam.renderPath()
+        dep.HistoryService:SetWaypoint("Changed interpolation methods")
     end
 end)
 
