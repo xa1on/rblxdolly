@@ -47,7 +47,7 @@ function m.notnill(inst)
         return false
     end
     if inst.Parent then
-        if inst.Parent == workspace or repStorage then
+        if inst.Parent == workspace or inst.Parent == repStorage then
             return true
         else 
             return m.notnill(inst.Parent)
@@ -78,6 +78,7 @@ function m.grabPoints(path)
     local points = {}
     local sort = {}
     if not path then return {} end
+    if not m.notnill(path) then return {} end
     for _, i in pairs(path:GetChildren()) do
         if tonumber(i.Name) then sort[#sort+1] = tonumber(i.Name) end
     end
@@ -139,13 +140,13 @@ local function tablechange()
     m.reloadDropdown()
 end
 
-function m.checkDir()
+function m.checkDir(createpath)
     m.unloadedMvmDir = m.createIfNotExist(repStorage, "Folder", m.mvmDirName)
     m.unloadedPathsDir = m.createIfNotExist(m.unloadedMvmDir, "Folder", m.pathsDirName)
     m.mvmDir = m.createIfNotExist(workspace, "Folder", m.mvmDirName)
     m.renderDir = m.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
     m.pathsDir = m.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
-    if #wdg.pathNameInput:GetValue() > 0 then
+    if #wdg.pathNameInput:GetValue() > 0 and createpath then
         if not m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue()) then
             m.unloadPaths()
             m.currentDir = m.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", tablechange)
@@ -155,6 +156,11 @@ function m.checkDir()
         m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
         wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
+    elseif #m.pathsDir:GetChildren() > 0 then
+        m.reloadDropdown()
+        local selection = m.pathsDir:GetChildren()[1]
+        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(selection.Name))
+        wdg.pathNameInput:SetValue(selection.Name)
     end
 end
 
@@ -189,8 +195,14 @@ end
 
 local function pointChange(property, point)
     if m.playing or m.ignorechange then return end
-    if property == "CFrame" then
-        m.renderPoint(point)
+    if property == "CFrame" or property == "Parent" then
+        if point.Parent and point.Parent.Name == m.pointDirName then
+            m.renderPoint(point)
+        elseif point.Parent and point.Parent.Parent and point.Parent.Parent.Name == m.pointDirName then
+            m.renderPoint(point.Parent)
+        else
+            m.renderPath()
+        end
     end
     if property == "Name" then m.insertPoint(point) end
 end
@@ -199,14 +211,14 @@ function m.reconnectPoints()
     m.checkDir()
     m.pathsDir.AncestryChanged:Connect(tablechange)
     for _, i in pairs(m.pathsDir:GetDescendants()) do
-        if i:IsA("BasePart") and not i.Locked then i.Changed:Connect(function(property) pointChange(property, i) end) end
-        if i:IsA("Folder") and i.Name ~= m.renderDirName then
+        if i:IsA("BasePart") then i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("Folder") then
             i.AncestryChanged:Connect(tablechange)
         end
     end
     for _, i in pairs(m.unloadedPathsDir:GetDescendants()) do
-        if i:IsA("BasePart") and not i.Locked then i.Changed:Connect(function(property) pointChange(property, i) end) end
-        if i:IsA("Folder") and i.Name ~= m.renderDirName then
+        if i:IsA("BasePart") then i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("Folder") then
             i.AncestryChanged:Connect(tablechange)
         end
     end
@@ -380,7 +392,6 @@ end
 
 function m.renderPoint(point)
     if not m.notnill(m.pointDir) then m.checkDir() end
-    if point.Parent and point.Parent.Name ~= m.pointDirName then m.renderPoint(point.Parent) return end
     local points = m.grabPoints()
     local index
     local parent = parent or m.renderDir:FindFirstChild(point.Name)
@@ -436,8 +447,9 @@ function m.renderPath()
 end
 
 function m.createPoint()
+    if not m.notnill(m.pointDir) then m.checkDir(true) end
+    if not m.notnill(m.pointDir) then return end
     local Camera = workspace.CurrentCamera
-    m.checkDir()
     local points = m.grabPoints()
     local name = nil
     if #points > 0 then name = points[#points].Name+1 else name = 1 end
@@ -449,7 +461,7 @@ function m.createPoint()
         fovValue.Name = "FOV"
         fovValue.Value = Camera.FieldOfView
     m.createControlPoints(newPoint, points[#points])
-    m:renderPath()
+    m.renderPoint(newPoint)
 end
 
 function m.runPath()
@@ -501,6 +513,7 @@ RunService.Heartbeat:Connect(m.preview)
 wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
 
 if workspace:FindFirstChild(m.mvmDirName) then
+    m.checkDir()
     m.renderPath()
     m.reconnectPoints()
     m.unlockPoints()
