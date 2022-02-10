@@ -1,7 +1,13 @@
 local m = {}
 
-m.defaultTiming = 2
+local util = require(script.Parent.util)
+
+m.defaultTiming = 2.5
+m.defaultSpeed = 5
 m.constSpeed = true
+
+m.startctrlName = "1"
+m.endctrlName = "2"
 
 function m.CFrameDist(cf1, cf2)
     return math.abs((cf1.Position - cf2.Position).Magnitude)
@@ -59,7 +65,7 @@ function m.catmullRomInterp(path, t)
 end
 m.cubicInterp = m.catmullRomInterp
 
-function m.fourpBezierInterp(path, t, control)
+function m.fourpCubicInterp(path, t, control)
     if not control then return m.catmullRomInterp(path, t) end
     local p1 = path[1]
     local p2 = path[2]
@@ -72,7 +78,7 @@ function m.fourpBezierInterp(path, t, control)
     local b = m.lerp(l2, l3, t)
     return m.lerp(a, b, t)
 end
-m.bezierInterp = m.fourpBezierInterp
+m.bezierInterp = m.fourpCubicInterp
 
 function m.interpolateCF(path, t, func, control)
     if not func then func = m.linearInterp end
@@ -82,8 +88,22 @@ function m.interpolateCF(path, t, func, control)
         pv[i] = v.Position
         lv[i] = v.LookVector
     end
-    local newpv = func(pv, t, control)
-    local newlv = func(lv, t)
+    local cpv = {}
+    local clv = {}
+    for i, v in pairs(control) do
+        cpv[i] = {}
+        clv[i] = {}
+        if v[1] then
+            cpv[i][1] = v[1].Position
+            clv[i][1] = v[1].LookVector
+        end
+        if v[2] then
+            cpv[i][2] = v[2].Position
+            clv[i][2] = v[2].LookVector
+        end
+    end
+    local newpv = func(pv, t, cpv)
+    local newlv = func(lv, t, clv)
     return CFrame.new(newpv, newpv + newlv)
 end
 
@@ -101,9 +121,10 @@ function m.segmentInterp(points, t, func)
             fovlist[i] = points[i].FOV.Value
             rolllist[i] = points[i].Roll.Value
             ctrllist[i] = {}
-            for _, v in pairs(points[i]:GetChildren()) do
-                if v:IsA("BasePart") then ctrllist[i][tonumber(v.Name)] = v.Position end
-            end
+            local startCtrl = points[i]:FindFirstChild(m.startctrlName)
+            if startCtrl then ctrllist[i][1] = startCtrl.CFrame end
+            local endCtrl = points[i]:FindFirstChild(m.endctrlName)
+            if endCtrl then ctrllist[i][2] = endCtrl.CFrame end
         end
     end
     local dist = m.defaultTiming
@@ -123,7 +144,7 @@ function m.pathInterp(points, t, func)
         return {true, CFrame.new(), 60, 0}
     end
     local current_t = t
-    for index, current in pairs(points) do
+    for index, _ in pairs(points) do
         local next = points[index+1]
         if next then
             local pointlist = {}

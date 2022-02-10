@@ -25,9 +25,6 @@ m.renderDirName = "Render"
 m.pathsDirName = "Paths"
 m.pointDirName = "Points"
 
-m.startctrlName = "1"
-m.endctrlName = "2"
-
 m.mvmDir = nil
 m.renderDir = nil
 m.pathsDir = nil
@@ -206,13 +203,13 @@ function m.alignCtrl(ctrl)
     local point = ctrl.Parent
     local mainctrl = ctrl
     local secondaryctrl
-    if ctrl.Name == m.startctrlName then
-        secondaryctrl = ctrl.Parent:FindFirstChild(m.endctrlName)
+    if ctrl.Name == interp.startctrlName then
+        secondaryctrl = ctrl.Parent:FindFirstChild(interp.endctrlName)
     else
-        secondaryctrl = ctrl.Parent:FindFirstChild(m.startctrlName)
+        secondaryctrl = ctrl.Parent:FindFirstChild(interp.startctrlName)
     end
     local offset = mainctrl.Position - point.Position
-    secondaryctrl.Position = point.Position - offset
+    if secondaryctrl then secondaryctrl.Position = point.Position - offset end
     m.ignorechange = false
 end
 
@@ -316,19 +313,19 @@ function m.createControlPoints(point, previous)
     local previouscf = previous.CFrame
     local relative1 = pointcf:ToObjectSpace(previouscf)
     local offset1 = CFrame.new(relative1.X/2, relative1.Y/2, relative1.Z/2)
-    local p1 = point:FindFirstChild(m.startctrlName)
+    local p1 = point:FindFirstChild(interp.startctrlName)
     if not p1 then
-        p1 = m.point(pointcf:ToWorldSpace(offset1), point, m.startctrlName)
+        p1 = m.point(pointcf:ToWorldSpace(offset1), point, interp.startctrlName)
         m.connections[#m.connections+1] = p1.Changed:Connect(function(property) pointChange(property, p1) end)
     end
     local offset2 = offset1:Inverse()
-    if previous:FindFirstChild(m.startctrlName) then
-        local relative2 = previouscf:ToObjectSpace(previous:FindFirstChild(m.startctrlName).CFrame)
+    if previous:FindFirstChild(interp.startctrlName) then
+        local relative2 = previouscf:ToObjectSpace(previous:FindFirstChild(interp.startctrlName).CFrame)
         offset2 = CFrame.new(-relative2.X, -relative2.Y, -relative2.Z)
     end
-    local p2 = previous:FindFirstChild(m.endctrlName)
+    local p2 = previous:FindFirstChild(interp.endctrlName)
     if not p2 then
-        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, m.endctrlName)
+        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, interp.endctrlName)
         m.connections[#m.connections+1] = p2.Changed:Connect(function(property) pointChange(property, p2) end)
     end
 end
@@ -339,8 +336,8 @@ function m.clearCtrl()
     if not m.notnill(m.pointDir) then m.checkDir() end
     local points = m.grabPoints()
     for _, i in pairs(points) do
-        local c1 = i:FindFirstChild(m.startctrlName)
-        local c2 = i:FindFirstChild(m.endctrlName)
+        local c1 = i:FindFirstChild(interp.startctrlName)
+        local c2 = i:FindFirstChild(interp.endctrlName)
         if c1 then c1:Destroy() end
         if c2 then c2:Destroy() end
     end
@@ -402,7 +399,7 @@ function m.renderPoint(point)
     newPoint.Parent = m.renderDir
     m.pointGui(newPoint, nil, "point", newPoint)
     if m.interpMethod == "bezierInterp" then
-        if not (point:FindFirstChild(m.endctrlName) and point:FindFirstChild(m.startctrlName)) then
+        if not (point:FindFirstChild(interp.endctrlName) and point:FindFirstChild(interp.startctrlName)) then
             m.createControlPoints(point, points[index-1])
             if points[index + 1] then
                 m.createControlPoints(points[index + 1], point)

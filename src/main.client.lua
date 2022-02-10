@@ -148,10 +148,6 @@ end)
 wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
         dep.dollycam.interpMethod = newinterp
-        if newinterp == "bezierInterp" then
-            dep.dollycam.clearCtrl()
-            return
-        end
         dep.dollycam.renderPath()
         dep.HistoryService:SetWaypoint("Changed interpolation methods")
     end
