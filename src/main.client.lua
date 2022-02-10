@@ -57,7 +57,6 @@ createAction("toggleWidget", "Toggle Widget", "Toggles widget", "", function() w
 
 
 
-
 -- creating points
 local function createPoint()
     if not dep.dollycam.playing then
@@ -149,7 +148,7 @@ end)
 wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     if not dep.dollycam.playing then
         dep.dollycam.interpMethod = newinterp
-        if newinterp == "bezierInterp" and wdg.automatectrlbezier:GetValue() then
+        if newinterp == "bezierInterp" then
             dep.dollycam.clearCtrl()
             return
         end
@@ -166,14 +165,6 @@ wdg["autoreorder"]:SetValueChangedFunction(function(newvalue)
 end)
 
 
-local function normalizectrlbezier()
-    if not dep.dollycam.playing then
-        dep.dollycam.normalizeCtrl()
-    end
-end
-wdg["normalizectrlbezier"].MouseButton1Down:Connect(normalizectrlbezier)
-createAction("normalizectrlbezier", "Normalize Control Points", "Normalizes Control Points", "", normalizectrlbezier)
-
 local function clearctrlbezier()
     if not dep.dollycam.playing then
         dep.dollycam.clearCtrl()
@@ -181,3 +172,12 @@ local function clearctrlbezier()
 end
 wdg["clearctrlbezier"].MouseButton1Down:Connect(clearctrlbezier)
 createAction("clearctrlbezier", "Reset Control Points", "Resets Control Points", "", clearctrlbezier)
+
+
+local function disconnect()
+    if not dep.dollycam.playing then
+        dep.dollycam.clearConnections()
+    end
+end
+wdg["disconnect"].MouseButton1Down:Connect(disconnect)
+createAction("disconnect", "Disconnect", "Clears Connections", "", disconnect)

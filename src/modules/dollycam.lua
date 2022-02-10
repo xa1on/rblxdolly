@@ -25,8 +25,8 @@ m.renderDirName = "Render"
 m.pathsDirName = "Paths"
 m.pointDirName = "Points"
 
-m.startctrlName = 1
-m.endctrlName = 2
+m.startctrlName = "1"
+m.endctrlName = "2"
 
 m.mvmDir = nil
 m.renderDir = nil
@@ -37,10 +37,17 @@ m.pointDir = nil
 m.unloadedMvmDir = nil
 m.unloadedPathsDir = nil
 
+m.connections = {}
 
 m.allowReorder = true
 
 m.ignorechange = false
+
+function m.clearConnections()
+    for _, v in pairs(m.connections) do
+        v:Disconnect()
+    end
+end
 
 function m.notnill(inst)
     if not inst then
@@ -74,37 +81,16 @@ function m.loadPath(path)
 end
 
 function m.grabPoints(path)
-    if not path then path = m.pointDir end
+    if not path then m.checkDir() path = m.pointDir end
+    if not path or not m.notnill(path) then return {} end
     local points = {}
     local sort = {}
-    if not path then return {} end
-    if not m.notnill(path) then return {} end
     for _, i in pairs(path:GetChildren()) do
         if tonumber(i.Name) then sort[#sort+1] = tonumber(i.Name) end
     end
     table.sort(sort)
     for _, i in pairs(sort) do points[#points+1] = path:FindFirstChild(tostring(i)) end
     return points
-end
-
-function m.lockPoints()
-    if not m.notnill(m.pointDir) then m.checkDir() end
-    if not m.pointDir then return end
-    for _, i in pairs(m.pointDir:GetDescendants()) do
-        if i:IsA("BasePart") then
-            i.Locked = true
-        end
-    end
-end
-
-function m.unlockPoints()
-    if not m.notnill(m.pointDir) then m.checkDir() end
-    if not m.pointDir then return end
-    for _, i in pairs(m.pointDir:GetDescendants()) do
-        if i:IsA("BasePart") then
-            i.Locked = false
-        end
-    end
 end
 
 function m.reloadDropdown()
@@ -128,7 +114,7 @@ function m.createIfNotExist(parent, type, name, connection, func)
         newInst = Instance.new(type, parent)
         newInst.Name = name
         if connection then
-            newInst[connection]:Connect(func)
+            m.connections[#m.connections+1] = newInst[connection]:Connect(func)
         end
     end
     return newInst
@@ -158,9 +144,12 @@ function m.checkDir(createpath)
         wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
     elseif #m.pathsDir:GetChildren() > 0 then
         m.reloadDropdown()
-        local selection = m.pathsDir:GetChildren()[1]
-        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(selection.Name))
-        wdg.pathNameInput:SetValue(selection.Name)
+        m.currentDir = m.pathsDir:GetChildren()[1]
+        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(m.currentDir.Name))
+        wdg.pathNameInput:SetValue(m.currentDir.Name)
+        m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
+        m.reloadDropdown()
+        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
     end
 end
 
@@ -195,31 +184,51 @@ end
 
 local function pointChange(property, point)
     if m.playing or m.ignorechange then return end
+    m.ignorechange = true
     if property == "CFrame" or property == "Parent" then
         if point.Parent and point.Parent.Name == m.pointDirName then
             m.renderPoint(point)
         elseif point.Parent and point.Parent.Parent and point.Parent.Parent.Name == m.pointDirName then
+            if wdg.lockctrlbezier:GetValue() then
+                m.alignCtrl(point)
+            end
             m.renderPoint(point.Parent)
         else
             m.renderPath()
         end
     end
     if property == "Name" then m.insertPoint(point) end
+    m.ignorechange = false
+end
+
+function m.alignCtrl(ctrl)
+    m.ignorechange = true
+    local point = ctrl.Parent
+    local mainctrl = ctrl
+    local secondaryctrl
+    if ctrl.Name == m.startctrlName then
+        secondaryctrl = ctrl.Parent:FindFirstChild(m.endctrlName)
+    else
+        secondaryctrl = ctrl.Parent:FindFirstChild(m.startctrlName)
+    end
+    local offset = mainctrl.Position - point.Position
+    secondaryctrl.Position = point.Position - offset
+    m.ignorechange = false
 end
 
 function m.reconnectPoints()
     m.checkDir()
-    m.pathsDir.AncestryChanged:Connect(tablechange)
+    m.connections[#m.connections+1] = m.pathsDir.AncestryChanged:Connect(tablechange)
     for _, i in pairs(m.pathsDir:GetDescendants()) do
-        if i:IsA("BasePart") then i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("BasePart") then m.connections[#m.connections+1] = i.Changed:Connect(function(property) pointChange(property, i) end) end
         if i:IsA("Folder") then
-            i.AncestryChanged:Connect(tablechange)
+            m.connections[#m.connections+1] = i.AncestryChanged:Connect(tablechange)
         end
     end
     for _, i in pairs(m.unloadedPathsDir:GetDescendants()) do
-        if i:IsA("BasePart") then i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("BasePart") then m.connections[#m.connections+1] = i.Changed:Connect(function(property) pointChange(property, i) end) end
         if i:IsA("Folder") then
-            i.AncestryChanged:Connect(tablechange)
+            m.connections[#m.connections+1] = i.AncestryChanged:Connect(tablechange)
         end
     end
 end
@@ -259,7 +268,7 @@ function m.point(cf, parent, name, locked, transparent)
         newPoint.Transparency = transparent
     end
     if not locked then
-        newPoint.Changed:Connect(function(property) pointChange(property, newPoint) end)
+        m.connections[#m.connections+1] = newPoint.Changed:Connect(function(property) pointChange(property, newPoint) end)
     else newPoint.Locked = true end
     return newPoint
 end
@@ -310,7 +319,7 @@ function m.createControlPoints(point, previous)
     local p1 = point:FindFirstChild(m.startctrlName)
     if not p1 then
         p1 = m.point(pointcf:ToWorldSpace(offset1), point, m.startctrlName)
-        p1.Changed:Connect(function(property) pointChange(property, p1) end)
+        m.connections[#m.connections+1] = p1.Changed:Connect(function(property) pointChange(property, p1) end)
     end
     local offset2 = offset1:Inverse()
     if previous:FindFirstChild(m.startctrlName) then
@@ -320,24 +329,10 @@ function m.createControlPoints(point, previous)
     local p2 = previous:FindFirstChild(m.endctrlName)
     if not p2 then
         p2 = m.point(previouscf:ToWorldSpace(offset2), previous, m.endctrlName)
-        p2.Changed:Connect(function(property) pointChange(property, p2) end)
+        m.connections[#m.connections+1] = p2.Changed:Connect(function(property) pointChange(property, p2) end)
     end
 end
 
-function m.normalizeCtrl()
-    if not m.notnill(m.pointDir) then m.checkDir() end
-    local points = m.grabPoints()
-    for _, i in pairs(points) do
-        local icf = i.CFrame
-        local c1 = i:FindFirstChild(m.startctrlName)
-        local c2 = i:FindFirstChild(m.endctrlName)
-        if c1 and c2 then
-            local cf = {c1.CFrame, c2.CFrame}
-
-        end
-    end
-    m.renderPath()
-end
 
 function m.clearCtrl()
     m.ignorechange = true
@@ -418,6 +413,7 @@ function m.renderPoint(point)
                 local newCtrl = ctrl:Clone()
                 newCtrl.Name = point.Name.."_"..ctrl.Name
                 newCtrl.Parent = newPoint
+                newCtrl.Size = Vector3.new(0.05,0.05,0.05)
                 m.pointGui(newCtrl, nil, "ctrl", newCtrl)
                 m.createLine(newCtrl, newPoint, "ctrlpath", newPoint)
             end
@@ -467,7 +463,6 @@ end
 function m.runPath()
     if m.playing then return end
     wdg.autoreorder:SetDisabled(true)
-    wdg.automatectrlbezier:SetDisabled(true)
     m.checkDir()
     m.renderDir:ClearAllChildren()
     previewTime = 0
@@ -480,7 +475,6 @@ end
 
 function m.stopPreview()
     wdg.autoreorder:SetDisabled(false)
-    wdg.automatectrlbezier:SetDisabled(false)
     m.playing = false
     local Camera = workspace.CurrentCamera
     Camera.CameraType = Enum.CameraType.Custom
@@ -509,14 +503,13 @@ m.resetTimescale()
 m.interpMethod = wdg.interpDropdown:GetChoice()
 local RunService = game:GetService("RunService")
 
-RunService.Heartbeat:Connect(m.preview)
-wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
+m.connections[#m.connections+1] = RunService.Heartbeat:Connect(m.preview)
+m.connections[#m.connections+1] = wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
 
 if workspace:FindFirstChild(m.mvmDirName) then
     m.checkDir()
     m.renderPath()
     m.reconnectPoints()
-    m.unlockPoints()
 end
 
 

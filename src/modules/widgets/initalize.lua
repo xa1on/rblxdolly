@@ -65,22 +65,20 @@ function m:GenerateWidget(widget)
     m.runPath.Size = UDim2.new(1, 0, 0, 30)
     m.runPath.Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.manualbeziercollapse = wdglib.CollapsibleTitledSection.new("manualbeziercollapse", "Manual Bezier Option", true, true, false)
-    m.manualbeziercollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
+    m.pointsettingscollapse = wdglib.CollapsibleTitledSection.new("pointsettingscollapse", "Point Options", true, true, false)
+    m.pointsettingscollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.automatectrlbezier = wdglib.LabeledCheckbox.new("automatectrlbezier", "Automate Bezier Path", true, false)
-    m.automatectrlbezier:GetFrame().Parent = m.manualbeziercollapse:GetContentsFrame()
+    m.autoreorder = wdglib.LabeledCheckbox.new("autoreorder", "Auto Point Ordering", true, false)
+    m.autoreorder:GetFrame().Parent = m.pointsettingscollapse:GetContentsFrame()
 
     m.lockctrlbezier = wdglib.LabeledCheckbox.new("lockctrlbezier", "Lock Control Points", true, false)
-    m.lockctrlbezier:GetFrame().Parent = m.manualbeziercollapse:GetContentsFrame()
+    m.lockctrlbezier:GetFrame().Parent = m.pointsettingscollapse:GetContentsFrame()
 
     m.clearctrlbezier = wdglib.CustomTextButton.new("clearctrlbezier", "Reset Control Points"):GetButton()
     m.clearctrlbezier.Size = UDim2.new(1, 0, 0, 25)
-    m.clearctrlbezier.Parent = m.manualbeziercollapse:GetContentsFrame()
+    m.clearctrlbezier.Parent = m.pointsettingscollapse:GetContentsFrame()
 
-    m.normalizectrlbezier = wdglib.CustomTextButton.new("normalizectrlbezier", "Normalize Control Points"):GetButton()
-    m.normalizectrlbezier.Size = UDim2.new(1, 0, 0, 25)
-    m.normalizectrlbezier.Parent = m.manualbeziercollapse:GetContentsFrame()
+
 
 
 
@@ -103,11 +101,17 @@ function m:GenerateWidget(widget)
     m.listFrame:AddChild(m.camotoolcollapse:GetSectionFrame())
 
     -- settings
-    m.settingscollapse = wdglib.CollapsibleTitledSection.new("settings", "Settings", true, true, true)
+    m.settingscollapse = wdglib.CollapsibleTitledSection.new("settings", "Settings", true, true, false)
     m.listFrame:AddChild(m.settingscollapse:GetSectionFrame())
 
-    m.autoreorder = wdglib.LabeledCheckbox.new("autoreorder", "Auto Point Ordering", true, false)
-    m.autoreorder:GetFrame().Parent = m.settingscollapse:GetContentsFrame()
+
+    -- dev settings
+    m.devsettingscollapse = wdglib.CollapsibleTitledSection.new("devsettings", "Developer Settings", true, true, false)
+    m.listFrame:AddChild(m.devsettingscollapse:GetSectionFrame())
+
+    m.disconnect = wdglib.CustomTextButton.new("disconnect", "Disconnect (Warning: disables the plugin)"):GetButton()
+    m.disconnect.Size = UDim2.new(1, 0, 0, 25)
+    m.disconnect.Parent = m.devsettingscollapse:GetContentsFrame()
 
 
     m.listFrame:AddBottomPadding()
