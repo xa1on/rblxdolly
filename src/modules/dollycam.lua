@@ -44,6 +44,7 @@ function m.clearConnections()
     for _, v in pairs(m.connections) do
         v:Disconnect()
     end
+    print("CONNECTIONS CLEARED - rblxmvm")
 end
 
 function m.notnill(inst)
@@ -189,9 +190,13 @@ local function pointChange(property, point)
             if wdg.lockctrlbezier:GetValue() then
                 m.alignCtrl(point)
             end
+            m.ignorechange = false
             m.renderPoint(point.Parent)
+            return
         else
+            m.ignorechange = false
             m.renderPath()
+            return
         end
     end
     if property == "Name" then m.insertPoint(point) end
@@ -209,7 +214,13 @@ function m.alignCtrl(ctrl)
         secondaryctrl = ctrl.Parent:FindFirstChild(interp.startctrlName)
     end
     local offset = mainctrl.Position - point.Position
-    if secondaryctrl then secondaryctrl.Position = point.Position - offset end
+    if secondaryctrl then
+        secondaryctrl.Position = point.Position - offset
+        local lvoffset = mainctrl.CFrame.LookVector - point.CFrame.LookVector
+        local pcf = point.CFrame
+        local realoffset = Vector3.new((pcf.LookVector.X+lvoffset.X), (pcf.LookVector.Y+lvoffset.Y), -(pcf.LookVector.Z+lvoffset.Z))
+        secondaryctrl.CFrame = CFrame.new(secondaryctrl.Position, secondaryctrl.Position + realoffset)
+    end
     m.ignorechange = false
 end
 
@@ -298,6 +309,23 @@ function m.pointGui(parent, name, type, adornee)
     return guipoint
 end
 
+function m.createDirection(cf, parent, name, type)
+    local newPoint = Instance.new("Part", parent)
+    newPoint.Name = name
+    newPoint.CFrame = cf:ToWorldSpace(CFrame.new(0,0,-0.25))
+    if type == "point" then
+        newPoint.Color = Color3.new(0.66, 0, 0)
+        newPoint.Size = Vector3.new(0.04, 0.04, 1)
+    elseif type == "path" then
+        newPoint.Color = Color3.new(1, 0.32, 0)
+        newPoint.Size = Vector3.new(0.02, 0.02, 1)
+    elseif type == "ctrl" then
+        newPoint.Color = Color3.new(0, 0, 0.66)
+        newPoint.Size = Vector3.new(0.03, 0.03, 1)
+    end
+    newPoint.Material = Enum.Material.Neon
+end
+
 function m.createLine(p1, p2, type, parent, num)
     if not num then num = 5 end
     for i = 1, num - 1 do
@@ -315,7 +343,7 @@ function m.createControlPoints(point, previous)
     local offset1 = CFrame.new(relative1.X/2, relative1.Y/2, relative1.Z/2)
     local p1 = point:FindFirstChild(interp.startctrlName)
     if not p1 then
-        p1 = m.point(pointcf:ToWorldSpace(offset1), point, interp.startctrlName)
+        p1 = m.point(pointcf:ToWorldSpace(offset1), point, interp.startctrlName, false)
         m.connections[#m.connections+1] = p1.Changed:Connect(function(property) pointChange(property, p1) end)
     end
     local offset2 = offset1:Inverse()
@@ -325,7 +353,7 @@ function m.createControlPoints(point, previous)
     end
     local p2 = previous:FindFirstChild(interp.endctrlName)
     if not p2 then
-        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, interp.endctrlName)
+        p2 = m.point(previouscf:ToWorldSpace(offset2), previous, interp.endctrlName, false)
         m.connections[#m.connections+1] = p2.Changed:Connect(function(property) pointChange(property, p2) end)
     end
 end
@@ -376,6 +404,7 @@ function m.renderSegment(target, parent)
             local newBTP = m.point(betweenCF[2], parent, t, true)
             newBTP.Size = Vector3.new(0.05,0.05,0.05)
             m.pointGui(newBTP, t, "path", newBTP)
+            m.createDirection(betweenCF[2], newBTP, t, "path")
             t = t + 1
             betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
         end
@@ -397,6 +426,7 @@ function m.renderPoint(point)
     local newPoint = point:Clone()
     newPoint:ClearAllChildren()
     newPoint.Parent = m.renderDir
+    m.createDirection(newPoint.CFrame, newPoint, "point", "point")
     m.pointGui(newPoint, nil, "point", newPoint)
     if m.interpMethod == "bezierInterp" then
         if not (point:FindFirstChild(interp.endctrlName) and point:FindFirstChild(interp.startctrlName)) then
@@ -411,6 +441,7 @@ function m.renderPoint(point)
                 newCtrl.Name = point.Name.."_"..ctrl.Name
                 newCtrl.Parent = newPoint
                 newCtrl.Size = Vector3.new(0.05,0.05,0.05)
+                m.createDirection(newCtrl.CFrame, newCtrl, newCtrl.Name, "ctrl")
                 m.pointGui(newCtrl, nil, "ctrl", newCtrl)
                 m.createLine(newCtrl, newPoint, "ctrlpath", newPoint)
             end
@@ -446,7 +477,7 @@ function m.createPoint()
     local points = m.grabPoints()
     local name = nil
     if #points > 0 then name = points[#points].Name+1 else name = 1 end
-    local newPoint = m.point(Camera.CFrame + Camera.CFrame.LookVector, m.pointDir, name, false)
+    local newPoint = m.point(Camera.CFrame, m.pointDir, name, false)
     local rollValue = Instance.new("NumberValue", newPoint)
         rollValue.Name = "Roll"
         rollValue.Value = setRoll.angle

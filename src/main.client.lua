@@ -3,6 +3,12 @@
     something#7597
 ideas:
 
+adding lookvector markers
+lighting configs
+editing point properties
+
+
+
 campaths
     3 passes, regular, depth, greenscreen
     camdata exporting into AE
@@ -134,13 +140,11 @@ end)
 
 wdg["pathDropdown"]:SetValueChangedFunction(function(newpath)
     if not dep.dollycam.playing then
-        dep.dollycam.lockPoints()
         dep.dollycam.unloadPaths()
         wdg["pathNameInput"]:SetValue(newpath.Name)
         dep.dollycam.loadPath(dep.dollycam.unloadedPathsDir:FindFirstChild(newpath.Name))
         dep.dollycam.checkDir()
         dep.dollycam.renderPath()
-        dep.dollycam.unlockPoints()
         dep.HistoryService:SetWaypoint("Switched paths")
     end
 end)

@@ -8,7 +8,7 @@ m.InterpMethods = {
     {"manual bezier", "bezierInterp", "bezier"}
 }
 
-m.InterpDefault = "cubic"
+m.InterpDefault = "bezier"
 
 function m:GenerateWidget(widget)
 	local bgframe = Instance.new("Frame")
