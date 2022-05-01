@@ -68,8 +68,8 @@ function m:GenerateWidget(widget)
     m.pointsettingscollapse = wdglib.CollapsibleTitledSection.new("pointsettingscollapse", "Point Options", true, true, false)
     m.pointsettingscollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
-    m.autoreorder = wdglib.LabeledCheckbox.new("autoreorder", "Auto Point Ordering", true, false)
-    m.autoreorder:GetFrame().Parent = m.pointsettingscollapse:GetContentsFrame()
+    --m.autoreorder = wdglib.LabeledCheckbox.new("autoreorder", "Auto Point Ordering", true, false)
+    --m.autoreorder:GetFrame().Parent = m.pointsettingscollapse:GetContentsFrame()
 
     m.lockctrlbezier = wdglib.LabeledCheckbox.new("lockctrlbezier", "Lock Control Points", true, false)
     m.lockctrlbezier:GetFrame().Parent = m.pointsettingscollapse:GetContentsFrame()

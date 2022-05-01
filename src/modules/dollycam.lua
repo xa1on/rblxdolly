@@ -40,6 +40,31 @@ m.allowReorder = true
 
 m.ignorechange = false
 
+m.pointProperties = {
+    ["point"] = {
+        size = UDim2.new(0.6, 0, 0.6, 0),
+        color = Color3.new(1,0,0),
+        dirsize = Vector3.new(0.04, 0.04, 0.5),
+        dircolor = Color3.new(0.66, 0, 0)
+    },
+    ["ctrl"] = {
+        size = UDim2.new(0.3, 0, 0.3, 0),
+        color = Color3.new(0,0,1),
+        dircolor = Color3.new(0, 0, 0.66),
+        dirsize = Vector3.new(0.03, 0.03, 0.5)
+    },
+    ["ctrlpath"] = {
+        size = UDim2.new(0.2, 0, 0.2, 0),
+        color = Color3.new(0,0.5,1)
+    },
+    ["path"] = {
+        size = UDim2.new(0.2, 0, 0.2, 0),
+        color = Color3.new(1,0.5,0),
+        dircolor = Color3.new(1, 0.32, 0),
+        dirsize = Vector3.new(0.02, 0.02, 0.5)
+    }
+}
+
 function m.clearConnections()
     for _, v in pairs(m.connections) do
         v:Disconnect()
@@ -157,8 +182,10 @@ function m.renamePoints()
     return points
 end
 
+-- depreciated
 function m.insertPoint(point)
     if m.ignorechange then return end
+    print("asdf")
     m.ignorechange = true
     point.Parent = nil
     local shift = false
@@ -183,7 +210,10 @@ end
 local function pointChange(property, point)
     if m.playing or m.ignorechange then return end
     m.ignorechange = true
-    if property == "CFrame" or property == "Parent" then
+    if point.Name == "1" then
+        print(property)
+    end
+    if property == "Position" or property == "Orientation" or property == "Rotation" or property == "Parent" then
         if point.Parent and point.Parent.Name == m.pointDirName then
             m.renderPoint(point)
         elseif point.Parent and point.Parent.Parent and point.Parent.Parent.Name == m.pointDirName then
@@ -199,12 +229,11 @@ local function pointChange(property, point)
             return
         end
     end
-    if property == "Name" then m.insertPoint(point) end
     m.ignorechange = false
+    if property == "Name" then m.renderPath() end
 end
 
 function m.alignCtrl(ctrl)
-    m.ignorechange = true
     local point = ctrl.Parent
     local mainctrl = ctrl
     local secondaryctrl
@@ -213,15 +242,13 @@ function m.alignCtrl(ctrl)
     else
         secondaryctrl = ctrl.Parent:FindFirstChild(interp.startctrlName)
     end
+    if not secondaryctrl then m.ignorechange = false return end
     local offset = mainctrl.Position - point.Position
-    if secondaryctrl then
-        secondaryctrl.Position = point.Position - offset
-        local lvoffset = mainctrl.CFrame.LookVector - point.CFrame.LookVector
-        local pcf = point.CFrame
-        local realoffset = Vector3.new((pcf.LookVector.X+lvoffset.X), (pcf.LookVector.Y+lvoffset.Y), -(pcf.LookVector.Z+lvoffset.Z))
-        secondaryctrl.CFrame = CFrame.new(secondaryctrl.Position, secondaryctrl.Position + realoffset)
-    end
-    m.ignorechange = false
+    secondaryctrl.Position = point.Position - offset
+    local EApoint = Vector3.new(point.CFrame:toEulerAnglesYXZ())
+    local EAmain = Vector3.new(mainctrl.CFrame:toEulerAnglesYXZ())
+    local newEA = 2*EApoint-EAmain
+    secondaryctrl.CFrame = CFrame.new(secondaryctrl.Position, secondaryctrl.Position + CFrame.fromEulerAnglesYXZ(newEA.X, newEA.Y, newEA.Z).LookVector)
 end
 
 function m.reconnectPoints()
@@ -287,22 +314,8 @@ function m.pointGui(parent, name, type, adornee)
     if name then guipoint.Name = name
     else guipoint.Name = "Point" end
     guipoint.AlwaysOnTop = false
-    if(type == "point") then
-        guipoint.Size = UDim2.new(0.6, 0, 0.6, 0)
-        guiframe.BackgroundColor3 = Color3.new(1,0,0)
-    elseif type == "ctrl" then
-        guipoint.Size = UDim2.new(0.3, 0, 0.3, 0)
-        guiframe.BackgroundColor3 = Color3.new(0,0,1)
-    elseif type == "ctrlpath" then
-        guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
-        guiframe.BackgroundColor3 = Color3.new(0,0.5,1)
-    elseif type == "path" then
-        guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
-        guiframe.BackgroundColor3 = Color3.new(1,0.5,0)
-    else
-        guipoint.Size = UDim2.new(0.2, 0, 0.2, 0)
-        guiframe.BackgroundColor3 = Color3.new(1,0.5,0)
-    end
+    guipoint.Size = m.pointProperties[type].size
+    guiframe.BackgroundColor3 = m.pointProperties[type].color
     guiframe.Size = UDim2.new(1,0,1,0)
     guiframe.BorderSizePixel = 0
     if adornee then guipoint.Adornee = adornee end
@@ -313,16 +326,9 @@ function m.createDirection(cf, parent, name, type)
     local newPoint = Instance.new("Part", parent)
     newPoint.Name = name
     newPoint.CFrame = cf:ToWorldSpace(CFrame.new(0,0,-0.25))
-    if type == "point" then
-        newPoint.Color = Color3.new(0.66, 0, 0)
-        newPoint.Size = Vector3.new(0.04, 0.04, 1)
-    elseif type == "path" then
-        newPoint.Color = Color3.new(1, 0.32, 0)
-        newPoint.Size = Vector3.new(0.02, 0.02, 1)
-    elseif type == "ctrl" then
-        newPoint.Color = Color3.new(0, 0, 0.66)
-        newPoint.Size = Vector3.new(0.03, 0.03, 1)
-    end
+    newPoint.Color = m.pointProperties[type].dircolor
+    newPoint.Size = m.pointProperties[type].dirsize
+    newPoint.Locked = true
     newPoint.Material = Enum.Material.Neon
 end
 
@@ -355,6 +361,11 @@ function m.createControlPoints(point, previous)
     if not p2 then
         p2 = m.point(previouscf:ToWorldSpace(offset2), previous, interp.endctrlName, false)
         m.connections[#m.connections+1] = p2.Changed:Connect(function(property) pointChange(property, p2) end)
+    end
+    local checkp2 = previous:FindFirstChild(interp.startctrlName)
+    if not checkp2 then
+        checkp2 = m.point(previouscf:ToWorldSpace(offset2:Inverse()), previous, interp.startctrlName, false)
+        m.connections[#m.connections+1] = checkp2.Changed:Connect(function(property) pointChange(property, checkp2) end)
     end
 end
 
@@ -471,7 +482,7 @@ function m.renderPath()
 end
 
 function m.createPoint()
-    if not m.notnill(m.pointDir) then m.checkDir(true) end
+    m.checkDir(true)
     if not m.notnill(m.pointDir) then return end
     local Camera = workspace.CurrentCamera
     local points = m.grabPoints()
@@ -486,11 +497,14 @@ function m.createPoint()
         fovValue.Value = Camera.FieldOfView
     m.createControlPoints(newPoint, points[#points])
     m.renderPoint(newPoint)
+    if m.interpMethod == "bezierInterp" and #points > 0 then
+        m.renderPoint(points[#points])
+    end
 end
 
 function m.runPath()
     if m.playing then return end
-    wdg.autoreorder:SetDisabled(true)
+    --wdg.autoreorder:SetDisabled(true)
     m.checkDir()
     m.renderDir:ClearAllChildren()
     previewTime = 0
@@ -502,7 +516,7 @@ function m.runPath()
 end
 
 function m.stopPreview()
-    wdg.autoreorder:SetDisabled(false)
+    --wdg.autoreorder:SetDisabled(false)
     m.playing = false
     local Camera = workspace.CurrentCamera
     Camera.CameraType = Enum.CameraType.Custom

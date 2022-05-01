@@ -157,12 +157,13 @@ wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
     end
 end)
 
+--[[
 wdg["autoreorder"]:SetValueChangedFunction(function(newvalue)
     if not dep.dollycam.playing then
         dep.dollycam.allowReorder = newvalue
         dep.dollycam.renamePoints()
     end
-end)
+end)]]
 
 
 local function clearctrlbezier()
