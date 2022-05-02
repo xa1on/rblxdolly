@@ -185,7 +185,6 @@ end
 -- depreciated
 function m.insertPoint(point)
     if m.ignorechange then return end
-    print("asdf")
     m.ignorechange = true
     point.Parent = nil
     local shift = false
@@ -210,9 +209,6 @@ end
 local function pointChange(property, point)
     if m.playing or m.ignorechange then return end
     m.ignorechange = true
-    if point.Name == "1" then
-        print(property)
-    end
     if property == "Position" or property == "Orientation" or property == "Rotation" or property == "Parent" then
         if point.Parent and point.Parent.Name == m.pointDirName then
             m.renderPoint(point)
