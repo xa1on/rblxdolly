@@ -9,10 +9,13 @@ m.RunService = game:GetService("RunService")
 
 
 m.moduledir = script.Parent.modules
+m.dollydir = m.moduledir.dollycam
 
-m.dollycam = require(m.moduledir.dollycam)
-m.setRoll = require(m.moduledir.setRoll)
-m.interp = require(m.moduledir.interpolation)
 m.util = require(m.moduledir.util)
+
+m.dollycam = require(m.dollydir.dollycam)
+m.setRoll = require(m.dollydir.setRoll)
+m.interp = require(m.dollydir.interpolation)
+m.timescale = require(m.dollydir.timescale)
 
 return m

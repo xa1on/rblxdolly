@@ -1,3 +1,4 @@
+local widget = require(script.Parent.Parent.widgets.initalize)
 local m = {}
 local inputService = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
@@ -43,7 +44,6 @@ m.angle = 0
 function m.updateTextBoxAngle()
 	m.angle = math.floor(math.deg(m.curr_angle) + .5)
 	tb.Text = m.angle
-    local widget = require(script.Parent.widgets.initalize)
     widget["rollInput"]:SetValue(m.angle)
 end
 

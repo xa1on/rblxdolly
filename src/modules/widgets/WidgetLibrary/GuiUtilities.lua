@@ -35,7 +35,7 @@ module.kButtonVerticalFudge = -5
 module.kBottomButtonsWidth = 100
 
 module.kDisabledTextColor = Color3.new(.4, .4, .4)                   --todo: input spec disabled text color
-module.kStandardButtonTextColor = Color3.new(0, 0, 0)                --todo: input spec disabled text color
+module.kStandardButtonTextColor = settings().Studio.Theme:GetColor(Enum.StudioStyleGuideColor.MainText)                --todo: input spec disabled text color
 module.kPressedButtonTextColor = Color3.new(1, 1, 1)                 --todo: input spec disabled text color
 
 module.kButtonStandardBackgroundColor = Color3.new(1, 1, 1)          --todo: sync with spec

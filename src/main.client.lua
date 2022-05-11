@@ -1,24 +1,25 @@
 --[[
-    rblxmvm
+    RBLXMVM
     something#7597
-ideas:
+    ideas:
+    lighting configs
+    editing point properties
 
-adding lookvector markers
-lighting configs
-editing point properties
-
-
-
-campaths
-    3 passes, regular, depth, greenscreen
-    camdata exporting into AE
-        ae script to import camdata
-
-widget layout:
-dollycam:
-    create point
-
+    campaths
+        3 passes, regular, depth, greenscreen
+        camdata exporting into AE
+            ae script to import camdata
+    widget layout:
 ]]--
+
+print("\n" ..
+"       ____________ _     __   _____  ____   ____  ___\n" ..
+"       | ___ \\ ___ \\ |    \\ \\ / /|  \\/  | | | |  \\/  |\n" ..
+"       | |_/ / |_/ / |     \\ V / | .  . | | | | .  . |\n" ..
+"       |    /| ___ \\ |     /   \\ | |\\/| | | | | |\\/| |\n" ..
+"       | |\\ \\| |_/ / |____/ /^\\ \\| |  | \\ \\_/ / |  | |\n" ..
+"       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
+"\n\n                   [xalon / something786]\n")
 
 -- widget
 local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float,
@@ -31,6 +32,7 @@ local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float,
 local widget = plugin:CreateDockWidgetPluginGui("RBLXMVM", widgetInfo)
 local playerId = game:GetService("StudioService"):GetUserId()
 widget.Title = "RBLXMVM - " .. game:GetService("Players"):GetNameFromUserIdAsync(playerId)
+
 
 -- dependencies
 local moduledir = script.Parent.modules
@@ -101,9 +103,9 @@ createAction("editRoll", "Edit Roll", "Toggles roll GUI", "", editRoll)
 wdg["timescaleInput"]:SetValueChangedFunction(function(newts)
     if tonumber(newts) then
         if not dep.dollycam.playing then
-            dep.dollycam.timescale = newts
+            dep.timescale.timescale = newts
         else
-            wdg["timescaleInput"]:SetValue(dep.dollycam.timescale)
+            wdg["timescaleInput"]:SetValue(dep.timescale.timescale)
         end
     end
 end)
@@ -177,8 +179,20 @@ createAction("clearctrlbezier", "Reset Control Points", "Resets Control Points",
 
 local function disconnect()
     if not dep.dollycam.playing then
-        dep.dollycam.clearConnections()
+        dep.util.clearConnections()
     end
 end
 wdg["disconnect"].MouseButton1Down:Connect(disconnect)
 createAction("disconnect", "Disconnect", "Clears Connections", "", disconnect)
+
+local sgui = Instance.new("ScreenGui", workspace)
+for _,i in pairs(widget:GetChildren()) do
+    i:Clone().Parent = sgui
+end
+
+plugin.Unloading:Connect(function()
+    dep.util.mvmprint("Unloading Plugin")
+    disconnect()
+end)
+
+dep.util.mvmprint("Finished Loading")

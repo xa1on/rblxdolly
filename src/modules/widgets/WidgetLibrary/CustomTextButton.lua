@@ -7,9 +7,15 @@
 ----------------------------------------
 GuiUtilities = require(script.Parent.GuiUtilities)
 
+--[[
 local kButtonImageIdDefault = "rbxasset://textures/TerrainTools/button_default.png"
 local kButtonImageIdHovered = "rbxasset://textures/TerrainTools/button_hover.png"
 local kButtonImageIdPressed = "rbxasset://textures/TerrainTools/button_pressed.png"
+]]--
+
+local kButtonImageIdDefault = "rbxassetid://9538563350"
+local kButtonImageIdHovered = "rbxassetid://9538563776"
+local kButtonImageIdPressed = "rbxassetid://9538564172"
 
 CustomTextButtonClass = {}
 CustomTextButtonClass.__index = CustomTextButtonClass

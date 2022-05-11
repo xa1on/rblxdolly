@@ -1,17 +1,20 @@
+local ServerScriptService = game:GetService("ServerScriptService")
 local m = {}
 
 -- dependencies
 local setRoll = require(script.Parent.setRoll)
 local interp = require(script.Parent.interpolation)
-local wdg = require(script.Parent.widgets.initalize)
-local util = require(script.Parent.util)
+local tscale = require(script.Parent.timescale)
+
+local wdg = require(script.Parent.Parent.widgets.initalize)
+local util = require(script.Parent.Parent.util)
+
 local repStorage = game:GetService("ReplicatedStorage")
 
 local HistoryService = game:GetService("ChangeHistoryService")
 
 -- playback variables
 local previewTime = 0
-m.timescale = 1
 m.interpMethod = nil
 
 local returnCFrame
@@ -34,7 +37,6 @@ m.pointDir = nil
 m.unloadedMvmDir = nil
 m.unloadedPathsDir = nil
 
-m.connections = {}
 
 m.allowReorder = true
 
@@ -65,31 +67,11 @@ m.pointProperties = {
     }
 }
 
-function m.clearConnections()
-    for _, v in pairs(m.connections) do
-        v:Disconnect()
-    end
-    print("CONNECTIONS CLEARED - rblxmvm")
-end
 
-function m.notnill(inst)
-    if not inst then
-        return false
-    end
-    if inst.Parent then
-        if inst.Parent == workspace or inst.Parent == repStorage then
-            return true
-        else 
-            return m.notnill(inst.Parent)
-        end
-    else
-        return false
-    end
-end
 
 function m.unloadPaths()
     m.ignorechange = true
-    if not (m.notnill(m.pathsDir) and m.notnill(m.unloadedPathsDir)) then m.checkDir() end
+    if not (util.notnill(m.pathsDir) and util.notnill(m.unloadedPathsDir)) then m.checkDir() end
     for _, i in pairs(m.pathsDir:GetChildren()) do
         i.Parent = m.unloadedPathsDir
     end
@@ -98,14 +80,14 @@ end
 
 function m.loadPath(path)
     m.ignorechange = true
-    if not m.notnill(m.pathsDir) then m.checkDir() end
+    if not util.notnill(m.pathsDir) then m.checkDir() end
     path.Parent = m.pathsDir
     m.ignorechange = false
 end
 
 function m.grabPoints(path)
     if not path then m.checkDir() path = m.pointDir end
-    if not path or not m.notnill(path) then return {} end
+    if not path or not util.notnill(path) then return {} end
     local points = {}
     local sort = {}
     for _, i in pairs(path:GetChildren()) do
@@ -131,18 +113,6 @@ function m.reloadDropdown()
     end
 end
 
-function m.createIfNotExist(parent, type, name, connection, func)
-    local newInst = parent:FindFirstChild(name)
-    if not newInst then
-        newInst = Instance.new(type, parent)
-        newInst.Name = name
-        if connection then
-            m.connections[#m.connections+1] = newInst[connection]:Connect(func)
-        end
-    end
-    return newInst
-end
-
 local function tablechange()
     if m.playing or m.ignorechange then return end
     m.renderPath()
@@ -150,19 +120,19 @@ local function tablechange()
 end
 
 function m.checkDir(createpath)
-    m.unloadedMvmDir = m.createIfNotExist(repStorage, "Folder", m.mvmDirName)
-    m.unloadedPathsDir = m.createIfNotExist(m.unloadedMvmDir, "Folder", m.pathsDirName)
-    m.mvmDir = m.createIfNotExist(workspace, "Folder", m.mvmDirName)
-    m.renderDir = m.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
-    m.pathsDir = m.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
+    m.unloadedMvmDir = util.createIfNotExist(repStorage, "Folder", m.mvmDirName)
+    m.unloadedPathsDir = util.createIfNotExist(m.unloadedMvmDir, "Folder", m.pathsDirName)
+    m.mvmDir = util.createIfNotExist(workspace, "Folder", m.mvmDirName)
+    m.renderDir = util.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
+    m.pathsDir = util.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
     if #wdg.pathNameInput:GetValue() > 0 and createpath then
         if not m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue()) then
             m.unloadPaths()
-            m.currentDir = m.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", tablechange)
+            m.currentDir = util.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", tablechange)
         else
             m.currentDir = m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue())
         end
-        m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
+        m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
         wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
     elseif #m.pathsDir:GetChildren() > 0 then
@@ -170,7 +140,7 @@ function m.checkDir(createpath)
         m.currentDir = m.pathsDir:GetChildren()[1]
         wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(m.currentDir.Name))
         wdg.pathNameInput:SetValue(m.currentDir.Name)
-        m.pointDir = m.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
+        m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
         wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
     end
@@ -249,41 +219,22 @@ end
 
 function m.reconnectPoints()
     m.checkDir()
-    m.connections[#m.connections+1] = m.pathsDir.AncestryChanged:Connect(tablechange)
+    util.appendConnection(m.pathsDir.AncestryChanged:Connect(tablechange))
     for _, i in pairs(m.pathsDir:GetDescendants()) do
-        if i:IsA("BasePart") then m.connections[#m.connections+1] = i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("BasePart") then util.appendConnection(i.Changed:Connect(function(property) pointChange(property, i) end)) end
         if i:IsA("Folder") then
-            m.connections[#m.connections+1] = i.AncestryChanged:Connect(tablechange)
+            util.appendConnection(i.AncestryChanged:Connect(tablechange))
         end
     end
     for _, i in pairs(m.unloadedPathsDir:GetDescendants()) do
-        if i:IsA("BasePart") then m.connections[#m.connections+1] = i.Changed:Connect(function(property) pointChange(property, i) end) end
+        if i:IsA("BasePart") then util.appendConnection(i.Changed:Connect(function(property) pointChange(property, i) end)) end
         if i:IsA("Folder") then
-            m.connections[#m.connections+1] = i.AncestryChanged:Connect(tablechange)
+            util.appendConnection(i.AncestryChanged:Connect(tablechange))
         end
     end
 end
 
-function m.resetTimescale()
-    for _, i in pairs(workspace:GetDescendants()) do
-        if i:IsA("ParticleEmitter") and i:FindFirstChild("originalTS") then
-            i.TimeScale = i:FindFirstChild("originalTS").Value
-            i:FindFirstChild("originalTS"):Destroy()
-        end
-    end
-end
 
-function m.particleTimescale(ts)
-    m.resetTimescale()
-    for _, i in pairs(workspace:GetDescendants()) do
-        if i:IsA("ParticleEmitter") then
-            local originalts = Instance.new("NumberValue", i)
-            originalts.Name = "originalTS"
-            originalts.Value = i.TimeScale
-            i.TimeScale = i.TimeScale * ts
-        end
-    end
-end
 
 function m.point(cf, parent, name, locked, transparent)
     local newPoint = Instance.new("Part", parent)
@@ -299,7 +250,7 @@ function m.point(cf, parent, name, locked, transparent)
         newPoint.Transparency = transparent
     end
     if not locked then
-        m.connections[#m.connections+1] = newPoint.Changed:Connect(function(property) pointChange(property, newPoint) end)
+        util.appendConnection(newPoint.Changed:Connect(function(property) pointChange(property, newPoint) end))
     else newPoint.Locked = true end
     return newPoint
 end
@@ -346,7 +297,7 @@ function m.createControlPoints(point, previous)
     local p1 = point:FindFirstChild(interp.startctrlName)
     if not p1 then
         p1 = m.point(pointcf:ToWorldSpace(offset1), point, interp.startctrlName, false)
-        m.connections[#m.connections+1] = p1.Changed:Connect(function(property) pointChange(property, p1) end)
+        util.appendConnection(p1.Changed:Connect(function(property) pointChange(property, p1) end))
     end
     local offset2 = offset1:Inverse()
     if previous:FindFirstChild(interp.startctrlName) then
@@ -356,19 +307,19 @@ function m.createControlPoints(point, previous)
     local p2 = previous:FindFirstChild(interp.endctrlName)
     if not p2 then
         p2 = m.point(previouscf:ToWorldSpace(offset2), previous, interp.endctrlName, false)
-        m.connections[#m.connections+1] = p2.Changed:Connect(function(property) pointChange(property, p2) end)
+        util.appendConnection(p2.Changed:Connect(function(property) pointChange(property, p2) end))
     end
     local checkp2 = previous:FindFirstChild(interp.startctrlName)
     if not checkp2 then
         checkp2 = m.point(previouscf:ToWorldSpace(offset2:Inverse()), previous, interp.startctrlName, false)
-        m.connections[#m.connections+1] = checkp2.Changed:Connect(function(property) pointChange(property, checkp2) end)
+        util.appendConnection(checkp2.Changed:Connect(function(property) pointChange(property, checkp2) end))
     end
 end
 
 
 function m.clearCtrl()
     m.ignorechange = true
-    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not util.notnill(m.pointDir) then m.checkDir() end
     local points = m.grabPoints()
     for _, i in pairs(points) do
         local c1 = i:FindFirstChild(interp.startctrlName)
@@ -381,7 +332,7 @@ function m.clearCtrl()
 end
 
 function m.renderSegment(target, parent)
-    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not util.notnill(m.pointDir) then m.checkDir() end
     local points = m.grabPoints()
     local parent = parent or m.renderDir:FindFirstChild(target.Name)
     local index
@@ -419,7 +370,7 @@ function m.renderSegment(target, parent)
 end
 
 function m.renderPoint(point)
-    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not util.notnill(m.pointDir) then m.checkDir() end
     local points = m.grabPoints()
     local index
     local parent = parent or m.renderDir:FindFirstChild(point.Name)
@@ -468,7 +419,7 @@ end
 
 function m.renderPath()
     if m.playing or m.ignorechange then return end
-    if not m.notnill(m.pointDir) then m.checkDir() end
+    if not util.notnill(m.pointDir) then m.checkDir() end
     if m.renderDir then m.renderDir:ClearAllChildren() end
     local points = m.grabPoints()
     for _, point in pairs(points) do
@@ -479,7 +430,7 @@ end
 
 function m.createPoint()
     m.checkDir(true)
-    if not m.notnill(m.pointDir) then return end
+    if not util.notnill(m.pointDir) then return end
     local Camera = workspace.CurrentCamera
     local points = m.grabPoints()
     local name = nil
@@ -507,7 +458,7 @@ function m.runPath()
     local Camera = workspace.CurrentCamera
     m.returnCFrame = Camera.CFrame
     m.returnFOV = Camera.FieldOfView
-    m.particleTimescale(m.timescale)
+    tscale.particleTimescale(tscale.timescale)
     m.playing = true
 end
 
@@ -518,14 +469,14 @@ function m.stopPreview()
     Camera.CameraType = Enum.CameraType.Custom
     Camera.CFrame = m.returnCFrame
     Camera.FieldOfView = m.returnFOV
-    m.resetTimescale()
+    tscale.resetTimescale()
     m.renderPath()
 end
 
 function m.preview(step)
     if not m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime * m.timescale, interp[m.interpMethod])
+    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime * tscale.timescale, interp[m.interpMethod])
     if previewLocation[1] then m.stopPreview() else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Scriptable
@@ -537,12 +488,13 @@ function m.preview(step)
 end
 
 
-m.resetTimescale()
+tscale.resetTimescale()
 m.interpMethod = wdg.interpDropdown:GetChoice()
 local RunService = game:GetService("RunService")
 
-m.connections[#m.connections+1] = RunService.Heartbeat:Connect(m.preview)
-m.connections[#m.connections+1] = wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
+util.appendConnection(RunService.Heartbeat:Connect(m.preview))
+
+wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
 
 if workspace:FindFirstChild(m.mvmDirName) then
     m.checkDir()

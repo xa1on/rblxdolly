@@ -1,6 +1,6 @@
 local m = {}
 
-local util = require(script.Parent.util)
+local util = require(script.Parent.Parent.util)
 
 m.defaultTiming = 2.5
 m.defaultSpeed = 5

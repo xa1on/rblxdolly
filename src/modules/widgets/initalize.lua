@@ -106,7 +106,7 @@ function m:GenerateWidget(widget)
 
 
     -- dev settings
-    m.devsettingscollapse = wdglib.CollapsibleTitledSection.new("devsettings", "Developer Settings", true, true, false)
+    m.devsettingscollapse = wdglib.CollapsibleTitledSection.new("devsettings", "Developer Settings", true, true, true)
     m.listFrame:AddChild(m.devsettingscollapse:GetSectionFrame())
 
     m.disconnect = wdglib.CustomTextButton.new("disconnect", "Disconnect (Warning: disables the plugin)"):GetButton()
