@@ -4,7 +4,7 @@ local m = {}
 m.connections = {}
 
 function m.mvmprint(t)
-    print("[" .. t .. " - RBLXMVM]")
+    print("[" .. t .. " - RBLXDOLLY]")
 end
 
 function m.dump(o)

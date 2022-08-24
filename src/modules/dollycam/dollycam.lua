@@ -244,6 +244,7 @@ function m.point(cf, parent, name, locked, transparent)
     newPoint.TopSurface = Enum.SurfaceType.SmoothNoOutlines
     newPoint.BottomSurface = Enum.SurfaceType.SmoothNoOutlines
     newPoint.FrontSurface = Enum.SurfaceType.Studs
+    newPoint.Anchored = true
     if not transparent then
         newPoint.Transparency = 1
     else
@@ -277,6 +278,7 @@ function m.createDirection(cf, parent, name, type)
     newPoint.Size = m.pointProperties[type].dirsize
     newPoint.Locked = true
     newPoint.Material = Enum.Material.Neon
+    newPoint.Anchored = true
 end
 
 function m.createLine(p1, p2, type, parent, num)

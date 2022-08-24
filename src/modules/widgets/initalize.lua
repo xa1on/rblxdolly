@@ -83,26 +83,26 @@ function m:GenerateWidget(widget)
 
 
 
-    m.cinepasscollapse = wdglib.CollapsibleTitledSection.new("cinepass", "Passes", true, true, true)
-    m.cinepasscollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
+    --m.cinepasscollapse = wdglib.CollapsibleTitledSection.new("cinepass", "Passes", true, true, true)
+    --m.cinepasscollapse:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     -- lighting
-    m.lightingcollapse = wdglib.CollapsibleTitledSection.new("lighting", "Lighting", true, true, true)
-    m.listFrame:AddChild(m.lightingcollapse:GetSectionFrame())
+    --m.lightingcollapse = wdglib.CollapsibleTitledSection.new("lighting", "Lighting", true, true, true)
+    --m.listFrame:AddChild(m.lightingcollapse:GetSectionFrame())
 
 
     -- poses
-    m.posetoolcollapse = wdglib.CollapsibleTitledSection.new("posetool", "Posing", true, true, true)
-    m.listFrame:AddChild(m.posetoolcollapse:GetSectionFrame())
+    --m.posetoolcollapse = wdglib.CollapsibleTitledSection.new("posetool", "Posing", true, true, true)
+    --m.listFrame:AddChild(m.posetoolcollapse:GetSectionFrame())
 
 
     -- weapons & skins
-    m.camotoolcollapse = wdglib.CollapsibleTitledSection.new("camotool", "Weapons & Camos", true, true, true)
-    m.listFrame:AddChild(m.camotoolcollapse:GetSectionFrame())
+    --m.camotoolcollapse = wdglib.CollapsibleTitledSection.new("camotool", "Weapons & Camos", true, true, true)
+    --m.listFrame:AddChild(m.camotoolcollapse:GetSectionFrame())
 
     -- settings
-    m.settingscollapse = wdglib.CollapsibleTitledSection.new("settings", "Settings", true, true, false)
-    m.listFrame:AddChild(m.settingscollapse:GetSectionFrame())
+    --m.settingscollapse = wdglib.CollapsibleTitledSection.new("settings", "Settings", true, true, false)
+    --m.listFrame:AddChild(m.settingscollapse:GetSectionFrame())
 
 
     -- dev settings

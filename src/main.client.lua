@@ -29,9 +29,9 @@ local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float,
 	200,
 	150,
 	150)
-local widget = plugin:CreateDockWidgetPluginGui("RBLXMVM", widgetInfo)
+local widget = plugin:CreateDockWidgetPluginGui("RBLXDOLLY", widgetInfo)
 local playerId = game:GetService("StudioService"):GetUserId()
-widget.Title = "RBLXMVM - " .. game:GetService("Players"):GetNameFromUserIdAsync(playerId)
+widget.Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(playerId)
 
 
 -- dependencies
@@ -46,7 +46,7 @@ require(moduledir.widgets.require)(plugin)
 local dep = require(script.Parent.dependencies)
 
 -- toolbar
-local toolbar = plugin:CreateToolbar("rblxmvm")
+local toolbar = plugin:CreateToolbar("rblxdolly")
 
 -- buttons
 local b_toggle = toolbar:CreateButton("Toggle","Toggle widget","")
@@ -57,7 +57,7 @@ local b_toggle = toolbar:CreateButton("Toggle","Toggle widget","")
 -- local functions
 
 local function createAction(id, title, desc, icon, action, bindable)
-    return plugin:CreatePluginAction(id, title, desc .. " - rblxmvm", icon, bindable).Triggered:Connect(action)
+    return plugin:CreatePluginAction(id, title, desc .. " - rblxdolly", icon, bindable).Triggered:Connect(action)
 end
 
 b_toggle.Click:Connect(function() widget.Enabled = not widget.Enabled end)
@@ -184,12 +184,12 @@ local function disconnect()
 end
 wdg["disconnect"].MouseButton1Down:Connect(disconnect)
 createAction("disconnect", "Disconnect", "Clears Connections", "", disconnect)
-
+--[[
 local sgui = Instance.new("ScreenGui", workspace)
 for _,i in pairs(widget:GetChildren()) do
     i:Clone().Parent = sgui
 end
-
+]]--
 plugin.Unloading:Connect(function()
     dep.util.mvmprint("Unloading Plugin")
     disconnect()
