@@ -38,6 +38,9 @@ function m:GenerateWidget(widget)
     m.timescaleInput:SetMaxGraphemes(10)
     m.timescaleInput:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
+    m.useTimescale = wdglib.LabeledCheckbox.new("usetimescale", "Use Timescale", true, false)
+    m.useTimescale:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
+
     m.fovInputSlider = wdglib.LabeledSlider.new("fovInputSlider", "FOV", 120, 1)
     m.fovInputSlider:SetValue(math.round(workspace.CurrentCamera.FieldOfView))
     m.fovInputSlider:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
@@ -53,6 +56,10 @@ function m:GenerateWidget(widget)
     m.rollInput = wdglib.LabeledTextInput.new("rollInput", "Secondary Roll", "0")
     m.rollInput:SetMaxGraphemes(10)
     m.rollInput:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
+
+    m.tweenTime = wdglib.LabeledTextInput.new("tweenTime", "Tween Time", "2.5")
+    m.tweenTime:SetMaxGraphemes(10)
+    m.tweenTime:GetFrame().Parent = m.dollycamcollapse:GetContentsFrame()
 
     m.interpDropdown = wdglib.DropdownMenu.new("interpDropdown", "Interpolation", m.InterpMethods, m.InterpDefault)
     m.interpDropdown:GetSectionFrame().Parent = m.dollycamcollapse:GetContentsFrame()

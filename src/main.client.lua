@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 --[[
     RBLXMVM
     something#7597
@@ -12,6 +13,8 @@
     widget layout:
 ]]--
 
+if game:GetService("RunService"):IsRunning() then return end
+
 print("\n" ..
 "       ____________ _     __   _____  ____   ____  ___\n" ..
 "       | ___ \\ ___ \\ |    \\ \\ / /|  \\/  | | | |  \\/  |\n" ..
@@ -22,13 +25,13 @@ print("\n" ..
 "\n\n                   [xalon / something786]\n")
 
 -- widget
-local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float,
+local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Left,
 	false,
 	false,
+	275,
 	200,
-	200,
-	150,
-	150)
+	275,
+	200)
 local widget = plugin:CreateDockWidgetPluginGui("RBLXDOLLY", widgetInfo)
 local playerId = game:GetService("StudioService"):GetUserId()
 widget.Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(playerId)
@@ -139,6 +142,17 @@ wdg["rollInput"]:SetValueChangedFunction(function(newroll)
         end
     end
 end)
+
+wdg["tweenTime"]:SetValueChangedFunction(function(newtween)
+    if tonumber(newtween) then
+        if not dep.dollycam.playing then
+            dep.dollycam.latesttweentime = newtween
+        else
+            wdg["tweenTime"]:SetValue(dep.dollycam.latesttweentime)
+        end
+    end
+end)
+
 
 wdg["pathDropdown"]:SetValueChangedFunction(function(newpath)
     if not dep.dollycam.playing then

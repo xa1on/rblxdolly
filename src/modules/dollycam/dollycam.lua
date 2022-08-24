@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 local m = {}
 
@@ -23,6 +24,9 @@ local returnFOV
 m.playing = false
 
 -- variables
+
+m.latesttweentime = wdg.tweenTime:GetValue()
+
 m.mvmDirName = "mvmpaths"
 m.renderDirName = "Render"
 m.pathsDirName = "Paths"
@@ -179,7 +183,7 @@ end
 local function pointChange(property, point)
     if m.playing or m.ignorechange then return end
     m.ignorechange = true
-    if property == "Position" or property == "Orientation" or property == "Rotation" or property == "Parent" then
+    if property == "CFrame" or property == "Parent" then
         if point.Parent and point.Parent.Name == m.pointDirName then
             m.renderPoint(point)
         elseif point.Parent and point.Parent.Parent and point.Parent.Parent.Name == m.pointDirName then
@@ -444,6 +448,9 @@ function m.createPoint()
     local fovValue = Instance.new("NumberValue", newPoint)
         fovValue.Name = "FOV"
         fovValue.Value = Camera.FieldOfView
+    local tweenTime = Instance.new("NumberValue", newPoint)
+        tweenTime.Name = "TweenTime"
+        tweenTime.Value = m.latesttweentime
     m.createControlPoints(newPoint, points[#points])
     m.renderPoint(newPoint)
     if m.interpMethod == "bezierInterp" and #points > 0 then
@@ -478,7 +485,7 @@ end
 function m.preview(step)
     if not m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime * tscale.timescale, interp[m.interpMethod])
+    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime--[[ * tscale.timescale]], interp[m.interpMethod],not wdg.useTimescale:GetValue())
     if previewLocation[1] then m.stopPreview() else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Scriptable
