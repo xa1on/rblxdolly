@@ -1,7 +1,9 @@
-local widget = require(script.Parent.Parent.widgets.initalize)
 local m = {}
 local inputService = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
+
+m.inputbox = nil
+
 local colors = {
 	black = Color3.new(0, 0, 0);
 	grey = Color3.new(.5, .5, .5);
@@ -44,7 +46,7 @@ m.angle = 0
 function m.updateTextBoxAngle()
 	m.angle = math.floor(math.deg(m.curr_angle) + .5)
 	tb.Text = m.angle
-    widget["rollInput"]:SetValue(m.angle)
+    m.inputbox:SetValue(m.angle)
 end
 
 function m.setCamRot(r)

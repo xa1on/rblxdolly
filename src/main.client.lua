@@ -24,189 +24,234 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
--- widget
-local widgetInfo  = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Left,
-	false,
-	false,
-	275,
-	200,
-	275,
-	200)
-local widget = plugin:CreateDockWidgetPluginGui("RBLXDOLLY", widgetInfo)
-local playerId = game:GetService("StudioService"):GetUserId()
-widget.Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(playerId)
 
-
--- dependencies
 local moduledir = script.Parent.modules
-
--- initalizing widget
-local wdg = require(moduledir.widgets.initalize)
-wdg:GenerateWidget(widget)
-
-require(moduledir.widgets.require)(plugin)
-
-local dep = require(script.Parent.dependencies)
+local gui = require(moduledir.rblxgui.initialize)(plugin, "rblxdolly")
 
 -- toolbar
 local toolbar = plugin:CreateToolbar("rblxdolly")
 
--- buttons
+local widget = gui.PluginWidget.new({ID = "rblxdolly", Enabled = true, DockState = Enum.InitialDockState.Left, Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(game:GetService("StudioService"):GetUserId())})
+gui.ViewButton.new()
+
 local b_toggle = toolbar:CreateButton("Toggle","Toggle widget","")
+b_toggle.Click:Connect(function() widget.Content.Enabled = not widget.Content.Enabled end)
 
--- local variables
+local mainpage = gui.Page.new({
+    Name = "MAIN",
+    TitlebarMenu = widget.TitlebarMenu,
+    Open = true
+})
 
+local mainpageframe = gui.ScrollingFrame.new(nil, mainpage.Content)
+mainpageframe:SetMain()
 
--- local functions
+gui.ListFrame.new({Height = 5})
 
-local function createAction(id, title, desc, icon, action, bindable)
-    return plugin:CreatePluginAction(id, title, desc .. " - rblxdolly", icon, bindable).Triggered:Connect(action)
+gui.Textbox.new({
+    Text = "RBLXDOLLY",
+    Font = Enum.Font.SourceSansBold,
+    TextSize = 20,
+    Alignment = Enum.TextXAlignment.Center
+})
+
+gui.Textbox.new({
+    Text = "Enter a path name and create a point to get started.",
+    Alignment = Enum.TextXAlignment.Center
+})
+
+gui.ListFrame.new({Height = 15})
+
+local createpoint = gui.Button.new({Text = "Create Point", ButtonSize = 0.5})
+
+local createscript = gui.Button.new({Text = "Create Playback Script", ButtonSize = 0.6})
+
+gui.ListFrame.new({Height = 15})
+
+local pathoptions = gui.Section.new({Text = "Path Options", Open = true})
+pathoptions:SetMain()
+
+local pathinput = gui.InputField.new({Placeholder = "Path Name"})
+gui.Labeled.new({Text = "Path", LabelSize = UDim.new(0,75), Object = pathinput})
+
+gui.ListFrame.new({Height = 5})
+
+local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Manual Curve", Value = "bezierInterp"}, Items = {{Name = "Manual Curve", Value = "bezierInterp"}, {Name = "Linear", Value = "linearInterp"}, {Name = "Cubic Curve", Value = "cubicInterp"}}, DisableEditing = true})
+gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,75), Object = interpolationinput})
+
+local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
+gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,75), Object = timescaleinput})
+
+gui.ListFrame.new({Height = 5})
+
+local startstopplayback = gui.Button.new({Text = "Start/Stop Playback", ButtonSize = 0.5})
+
+local resetcontrolpoints = gui.Button.new({Text = "Reset All Control Points", ButtonSize = 0.55})
+
+gui.ListFrame.new({Height = 5})
+
+local pointoptions = gui.Section.new({Text = "Point Options", Open = true}, mainpageframe.Content)
+pointoptions:SetMain()
+
+local tweentimeinput = gui.InputField.new({Placeholder = "Tween Time Value", Value = 2.5, NoDropdown = true})
+gui.Labeled.new({Text = "Tween Time", LabelSize = UDim.new(0,75), Object = tweentimeinput})
+
+local fovinput = gui.InputField.new({Placeholder = "FOV Value", Value = math.round(workspace.CurrentCamera.FieldOfView), NoDropdown = true})
+local fovslider = gui.Slider.new({Min = 0, Max = 120, Increment = 1})
+gui.Labeled.new({Text = "FOV", LabelSize = UDim.new(0,75), Objects = {{Object = fovinput, Name = "input", Size = UDim.new(0.3,0)}, {Object = fovslider, Name = "slider"}}})
+
+local rollinput = gui.InputField.new({Placeholder = "Roll Value", Value = 0, NoDropdown = true})
+gui.Labeled.new({Text = "Roll", LabelSize = UDim.new(0,75), Object = rollinput})
+
+local previeweditroll = gui.Button.new({Text = "Preview/Edit Roll", ButtonSize = 0.5})
+
+local settingspage = gui.Page.new({
+    Name = "SETTINGS",
+    TitlebarMenu = widget.TitlebarMenu
+})
+
+local settingsframe = gui.ScrollingFrame.new(nil, settingspage.Content)
+
+local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, settingsframe.Content)
+dollycamsettings:SetMain()
+
+local usetimescalecheckbox = gui.Checkbox.new({Value = true})
+gui.Labeled.new({Text = "Use Timescale", LabelSize = UDim.new(0, 75), Object = usetimescalecheckbox})
+
+local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
+gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0, 75), Object = lockcontrolpointscheckbox})
+
+local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
+
+local savedkeybinds = plugin:GetSetting("rblxdolly saved keybinds") or {}
+local function createKeybind(title, action, default, binds)
+    if savedkeybinds[title] then default = savedkeybinds[title] end
+    local newkeybind = gui.KeybindInputField.new({Action = action, CurrentBind = default, Binds = binds})
+    gui.Labeled.new({Text = title, LabelSize = 0.4, Object = newkeybind}, gui.ListFrame.new(nil, keybindsection.Content).Content)
+    newkeybind:Changed(function(p)
+        savedkeybinds[title] = p
+    end)
 end
 
-b_toggle.Click:Connect(function() widget.Enabled = not widget.Enabled end)
-createAction("toggleWidget", "Toggle Widget", "Toggles widget", "", function() widget.Enabled = not widget.Enabled end)
+local dep = require(script.Parent.dependencies)
 
+createKeybind("Toggle Widget", function() widget.Content.Enabled = not widget.Content.Enabled end, {{"LeftControl", "LeftShift", "T"}})
 
-
--- creating points
 local function createPoint()
     if not dep.dollycam.playing then
         dep.dollycam.createPoint()
     end
     dep.HistoryService:SetWaypoint("Created Point")
 end
-wdg["createPoint"].MouseButton1Down:Connect(createPoint)
-createAction("createPoint", "Create Point", "Creates a campath point", "", createPoint)
+createpoint:Clicked(createPoint)
+createKeybind("Create Point", createPoint, {{"P"}})
 
+local function createScript()
+    dep.dollycam.createPlaybackScript()
+    dep.HistoryService:SetWaypoint("Created Script")
+end
+createscript:Clicked(createScript)
+createKeybind("Create Playback Script", createScript)
 
--- running path
 local function runPath()
-    if not dep.dollycam.playing then dep.dollycam.runPath() end
+    if not dep.dollycam.playing then dep.dollycam.runPath()
+    else dep.dollycam.stopPreview() end
 end
-wdg["runPath"].MouseButton1Down:Connect(runPath)
-createAction("runPath", "Play Path", "Plays selected path", "", runPath)
+startstopplayback:Clicked(runPath)
+createKeybind("Start/Stop Playback", runPath, {{"LeftControl", "LeftShift", "P"}})
 
-
--- stop playback
-local function stopPath()
-    if dep.dollycam.playing then dep.dollycam.stopPreview() end
-end
-wdg["stopPath"].MouseButton1Down:Connect(stopPath)
-createAction("stopPath", "Stop Playback", "Stops playback", "", stopPath)
-
-
--- editing roll
 local function editRoll()
     if not dep.dollycam.playing then dep.setRoll.toggleRollGui() end
 end
-wdg["editRoll"].MouseButton1Down:Connect(editRoll)
-createAction("editRoll", "Edit Roll", "Toggles roll GUI", "", editRoll)
-
-
-wdg["timescaleInput"]:SetValueChangedFunction(function(newts)
-    if tonumber(newts) then
-        if not dep.dollycam.playing then
-            dep.timescale.timescale = newts
-        else
-            wdg["timescaleInput"]:SetValue(dep.timescale.timescale)
-        end
-    end
-end)
-
-wdg["fovInputSlider"]:SetValueChangedFunction(function(newfov)
-    if not dep.dollycam.playing then 
-        workspace.CurrentCamera.FieldOfView = newfov
-        wdg["fovInput"]:SetValue(newfov)
-    else
-        wdg["fovInputSlider"]:SetValue(workspace.CurrentCamera.FieldOfView)
-    end
-end)
-
-wdg["fovInput"]:SetValueChangedFunction(function(newfov)
-    if tonumber(newfov) then
-        if not dep.dollycam.playing then 
-            workspace.CurrentCamera.FieldOfView = newfov
-            wdg["fovInputSlider"]:SetValue(newfov)
-        else
-            wdg["fovInput"]:SetValue(workspace.CurrentCamera.FieldOfView)
-        end
-    end
-end)
-
-wdg["rollInput"]:SetValueChangedFunction(function(newroll)
-    if tonumber(newroll) then
-        if not dep.dollycam.playing and not dep.setRoll.roll_active then
-            dep.setRoll.angle = newroll
-        else
-            wdg["rollInput"]:SetValue(dep.setRoll.angle)
-        end
-    end
-end)
-
-wdg["tweenTime"]:SetValueChangedFunction(function(newtween)
-    if tonumber(newtween) then
-        if not dep.dollycam.playing then
-            dep.dollycam.latesttweentime = newtween
-        else
-            wdg["tweenTime"]:SetValue(dep.dollycam.latesttweentime)
-        end
-    end
-end)
-
-
-wdg["pathDropdown"]:SetValueChangedFunction(function(newpath)
-    if not dep.dollycam.playing then
-        dep.dollycam.unloadPaths()
-        wdg["pathNameInput"]:SetValue(newpath.Name)
-        dep.dollycam.loadPath(dep.dollycam.unloadedPathsDir:FindFirstChild(newpath.Name))
-        dep.dollycam.checkDir()
-        dep.dollycam.renderPath()
-        dep.HistoryService:SetWaypoint("Switched paths")
-    end
-end)
-
-wdg["interpDropdown"]:SetValueChangedFunction(function(newinterp)
-    if not dep.dollycam.playing then
-        dep.dollycam.interpMethod = newinterp
-        dep.dollycam.renderPath()
-        dep.HistoryService:SetWaypoint("Changed interpolation methods")
-    end
-end)
-
---[[
-wdg["autoreorder"]:SetValueChangedFunction(function(newvalue)
-    if not dep.dollycam.playing then
-        dep.dollycam.allowReorder = newvalue
-        dep.dollycam.renamePoints()
-    end
-end)]]
-
+previeweditroll:Clicked(editRoll)
+createKeybind("Edit Roll", editRoll)
 
 local function clearctrlbezier()
     if not dep.dollycam.playing then
         dep.dollycam.clearCtrl()
     end
 end
-wdg["clearctrlbezier"].MouseButton1Down:Connect(clearctrlbezier)
-createAction("clearctrlbezier", "Reset Control Points", "Resets Control Points", "", clearctrlbezier)
+resetcontrolpoints:Clicked(clearctrlbezier)
+createKeybind("Reset Control Points", clearctrlbezier)
 
-
-local function disconnect()
-    if not dep.dollycam.playing then
-        dep.util.clearConnections()
+timescaleinput:Changed(function(newts)
+    if tonumber(newts) then
+        dep.timescale.timescale = newts
     end
-end
-wdg["disconnect"].MouseButton1Down:Connect(disconnect)
-createAction("disconnect", "Disconnect", "Clears Connections", "", disconnect)
---[[
-local sgui = Instance.new("ScreenGui", workspace)
-for _,i in pairs(widget:GetChildren()) do
-    i:Clone().Parent = sgui
-end
-]]--
+end)
+
+fovslider:Changed(function(newfov)
+    workspace.CurrentCamera.FieldOfView = newfov
+    if fovinput.Value ~= newfov then fovinput:SetValue(newfov) end
+end)
+fovinput:Changed(function(newfov)
+    if tonumber(newfov) then
+        workspace.CurrentCamera.FieldOfView = newfov
+        if fovslider.Value ~= newfov then fovslider:SetValue(newfov) end
+    end
+end)
+
+rollinput:Changed(function(newroll)
+    if tonumber(newroll) then
+        dep.setRoll.angle = newroll
+    end
+end)
+dep.setRoll.inputbox = rollinput
+
+tweentimeinput:Changed(function(newtween)
+    if tonumber(newtween) then
+        dep.dollycam.latesttweentime = newtween
+    end
+end)
+dep.dollycam.latesttweentime = tweentimeinput.Value
+
+pathinput:Changed(function(newpath)
+    if dep.dollycam.currentPathValue == newpath then return end
+    dep.dollycam.currentPathValue = newpath
+    local newpathdir = dep.dollycam.unloadedPathsDir:FindFirstChild(newpath)
+    if newpathdir then
+        dep.dollycam.unloadPaths()
+        dep.dollycam.loadPath(newpathdir)
+        dep.dollycam.checkDir()
+        dep.dollycam.renderPath()
+        dep.HistoryService:SetWaypoint("Switched paths")
+    end
+end)
+pathinput:DropdownToggled(function()
+    print("drop")
+    dep.dollycam.reloadDropdown()
+    gui.GUIUtil.DumpGUI(widget.Content)
+end)
+dep.dollycam.dropdown = pathinput
+
+interpolationinput:Changed(function(newinterp)
+    dep.dollycam.interpMethod = newinterp
+    dep.dollycam.renderPath()
+    dep.HistoryService:SetWaypoint("Changed interpolation methods")
+end)
+dep.dollycam.interpMethod = interpolationinput.Value
+
+usetimescalecheckbox:Clicked(function(newvalue)
+    dep.dollycam.useTimescale = newvalue
+end)
+
+lockcontrolpointscheckbox:Clicked(function(newvalue)
+    dep.dollycam.lockctrlbezier = newvalue
+end)
+
+dep.dollycam.initialize()
+
+--[["autoreorder":SetValueChangedFunction(function(newvalue)
+    if not dep.dollycam.playing then
+        dep.dollycam.allowReorder = newvalue
+        dep.dollycam.renamePoints()
+    end
+end)]]
+
 plugin.Unloading:Connect(function()
     dep.util.mvmprint("Unloading Plugin")
-    disconnect()
+    dep.util.clearConnections()
+    plugin:SetSetting("rblxdolly saved keybinds", savedkeybinds)
 end)
 
 dep.util.mvmprint("Finished Loading")

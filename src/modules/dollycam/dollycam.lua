@@ -6,8 +6,6 @@ local m = {}
 local setRoll = require(script.Parent.setRoll)
 local interp = require(script.Parent.interpolation)
 local tscale = require(script.Parent.timescale)
-
-local wdg = require(script.Parent.Parent.widgets.initalize)
 local util = require(script.Parent.Parent.util)
 
 local repStorage = game:GetService("ReplicatedStorage")
@@ -16,7 +14,6 @@ local HistoryService = game:GetService("ChangeHistoryService")
 
 -- playback variables
 local previewTime = 0
-m.interpMethod = nil
 
 local returnCFrame
 local returnFOV
@@ -25,12 +22,18 @@ m.playing = false
 
 -- variables
 
-m.latesttweentime = wdg.tweenTime:GetValue()
+m.latesttweentime = nil
+m.useTimescale = nil
+m.interpMethod = nil
+m.currentPathValue = nil
+m.dropdown = nil
+m.lockctrlbezier = nil
 
 m.mvmDirName = "mvmpaths"
 m.renderDirName = "Render"
 m.pathsDirName = "Paths"
 m.pointDirName = "Points"
+m.scriptName = "mvmplayback"
 
 m.mvmDir = nil
 m.renderDir = nil
@@ -103,16 +106,17 @@ function m.grabPoints(path)
 end
 
 function m.reloadDropdown()
-    wdg.pathDropdown:RemoveAll()
+    if not m.dropdown then return end
+    for _,v in pairs(m.dropdown.DropdownScroll.Content:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     if not m.mvmDir then m.checkDir() return end
-    for index, inst in pairs(m.pathsDir:GetChildren()) do
+    for _, inst in pairs(m.pathsDir:GetChildren()) do
         if inst.Name ~= m.renderDirName then
-            wdg.pathDropdown:AddSelection({inst.Name, inst, tostring(index)})
+            m.dropdown:AddItem(inst.Name)
         end
     end
-    for index, inst in pairs(m.unloadedPathsDir:GetChildren()) do
+    for _, inst in pairs(m.unloadedPathsDir:GetChildren()) do
         if inst.Name ~= m.renderDirName then
-            wdg.pathDropdown:AddSelection({inst.Name, inst, tostring(index + #m.pathsDir:GetChildren())})
+            m.dropdown:AddItem(inst.Name)
         end
     end
 end
@@ -129,24 +133,24 @@ function m.checkDir(createpath)
     m.mvmDir = util.createIfNotExist(workspace, "Folder", m.mvmDirName)
     m.renderDir = util.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
     m.pathsDir = util.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
-    if #wdg.pathNameInput:GetValue() > 0 and createpath then
-        if not m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue()) then
+    if m.currentPathValue and string.len(m.currentPathValue) > 0 and createpath then
+        if not m.pathsDir:FindFirstChild(m.currentPathValue) then
             m.unloadPaths()
-            m.currentDir = util.createIfNotExist(m.pathsDir, "Folder", wdg.pathNameInput:GetValue(), "AncestryChanged", tablechange)
+            m.currentDir = util.createIfNotExist(m.pathsDir, "Folder", m.currentPathValue, "AncestryChanged", tablechange)
+            m.renderPath()
         else
-            m.currentDir = m.pathsDir:FindFirstChild(wdg.pathNameInput:GetValue())
+            m.currentDir = m.pathsDir:FindFirstChild(m.currentPathValue)
         end
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
-        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
+        m.dropdown:SetValue(m.currentPathValue)
     elseif #m.pathsDir:GetChildren() > 0 then
         m.reloadDropdown()
         m.currentDir = m.pathsDir:GetChildren()[1]
-        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(m.currentDir.Name))
-        wdg.pathNameInput:SetValue(m.currentDir.Name)
+        m.dropdown:SetValue(m.currentDir.Name)
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
-        wdg.pathDropdown:SetSelection(wdg.pathDropdown:GetID(wdg.pathNameInput:GetValue()))
+        m.dropdown:SetValue(m.currentPathValue)
     end
 end
 
@@ -187,7 +191,7 @@ local function pointChange(property, point)
         if point.Parent and point.Parent.Name == m.pointDirName then
             m.renderPoint(point)
         elseif point.Parent and point.Parent.Parent and point.Parent.Parent.Name == m.pointDirName then
-            if wdg.lockctrlbezier:GetValue() then
+            if m.lockctrlbezier then
                 m.alignCtrl(point)
             end
             m.ignorechange = false
@@ -460,7 +464,7 @@ end
 
 function m.runPath()
     if m.playing then return end
-    --wdg.autoreorder:SetDisabled(true)
+    --.autoreorder:SetDisabled(true)
     m.checkDir()
     m.renderDir:ClearAllChildren()
     previewTime = 0
@@ -472,7 +476,7 @@ function m.runPath()
 end
 
 function m.stopPreview()
-    --wdg.autoreorder:SetDisabled(false)
+    --.autoreorder:SetDisabled(false)
     m.playing = false
     local Camera = workspace.CurrentCamera
     Camera.CameraType = Enum.CameraType.Custom
@@ -485,7 +489,10 @@ end
 function m.preview(step)
     if not m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local previewLocation = interp.pathInterp(m.grabPoints(), previewTime--[[ * tscale.timescale]], interp[m.interpMethod],not wdg.useTimescale:GetValue())
+    local scaledTime = previewTime
+    local useTimescale = m.useTimescale
+    if useTimescale then scaledTime = previewTime * tscale.timescale end
+    local previewLocation = interp.pathInterp(m.grabPoints(), scaledTime, interp[m.interpMethod], not useTimescale)
     if previewLocation[1] then m.stopPreview() else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Scriptable
@@ -496,19 +503,230 @@ function m.preview(step)
     previewTime = previewTime + step
 end
 
+function m.createPlaybackScript()
+    if workspace:FindFirstChild(m.scriptName) then workspace[m.scriptName]:Destroy() end
+    local newScript = Instance.new("ModuleScript", workspace)
+    newScript.Name = m.scriptName
+    newScript.Source = [[local defaultTiming = 2.5
+    local startctrlName = "1"
+    local endctrlName = "2"
+    local function CFrameDist(cf1, cf2)
+        return math.abs((cf1.Position - cf2.Position).Magnitude)
+    end
+    -- Credit to @Fractality_alt on rblx devforums for the hermite and catmull rom coefficent functions
+    -- hermite coefficents
+    local function hermiteCoefficents(p0, p1, m0, m1)
+        return p0, m0, 3*(p1 - p0) - 2*m0 - m1, 2*(p1 - p0) - m0 - m1
+    end
+    -- catmull rom coefficents
+    local function CRCoefficents(p0, p1, p2, p3, r)
+        r = r or 0.5
+        return
+            2*p1*r,
+            (p2 - p0)*r,
+            (2*p0 - 5*p1 + 4*p2 - p3)*r,
+            (3*(p1 - p2) + (p3 - p0))*r
+    end
+    local function cubic(t, a, b, c, d)
+        return a + t*(b + t*(c + t*d))
+    end
+    local function lerp(p1, p2, t)
+        return p1 + (p2 - p1) * t
+    end
+    local function cosine(p1, p2, t)
+        p2 = p2 or p1
+        local f = (1 - math.cos(t * math.pi)) * 0.5
+        return p1 * (1 - f) + p2 * f
+    end
+    local function linearInterp(path, t)
+        local p1 = path[1]
+        local p2 = path[2] or p1
+        return lerp(p1, p2, t)
+    end
+    local function cosineInterp(path, t)
+        local p1 = path[1]
+        local p2 = path[2] or p1
+        return cosine(p1, p2, t)
+    end
+    local function catmullRomInterp(path, t)
+        local p0 = path[0] or path[1]
+        local p1 = path[1]
+        local p2 = path[2] or p1
+        local p3 = path[3] or p2
+        local a,b,c,d = CRCoefficents(p0, p1, p2, p3)
+        return cubic(t, a, b, c, d)
+    end
+    local cubicInterp = catmullRomInterp
+    local function fourpCubicInterp(path, t, control)
+        if not control then return catmullRomInterp(path, t) end
+        local p1 = path[1]
+        local p2 = path[2]
+        local c1 = control[1][2]
+        local c2 = control[2][1]
+        local l1 = lerp(p1, c1, t)
+        local l2 = lerp(c1, c2, t)
+        local l3 = lerp(c2, p2, t)
+        local a = lerp(l1, l2, t)
+        local b = lerp(l2, l3, t)
+        return lerp(a, b, t)
+    end
+    local bezierInterp = fourpCubicInterp
+    local function interpolateCF(path, t, func, control)
+        if not func then func = linearInterp end
+        local pv = {}
+        local lv = {}
+        for i, v in pairs(path) do
+            pv[i] = v.Position
+            lv[i] = v.LookVector
+        end
+        local cpv = {}
+        local clv = {}
+        for i, v in pairs(control) do
+            cpv[i] = {}
+            clv[i] = {}
+            if v[1] then
+                cpv[i][1] = v[1].Position
+                clv[i][1] = v[1].LookVector
+            end
+            if v[2] then
+                cpv[i][2] = v[2].Position
+                clv[i][2] = v[2].LookVector
+            end
+        end
+        local newpv = func(pv, t, cpv)
+        local newlv = func(lv, t, clv)
+        return CFrame.new(newpv, newpv + newlv)
+    end
+    local function segmentInterp(points, t, func, usetween)
+        points[0] = points[0] or points[1]
+        points[2] = points[2] or points[1]
+        points[3] = points[3] or points[2]
+        local cframelist = {}
+        local fovlist = {}
+        local rolllist = {}
+        local ctrllist = {}
+        for i = 0,3,1 do
+            if points[i] then
+                cframelist[i] = points[i].CFrame
+                fovlist[i] = points[i].FOV.Value
+                rolllist[i] = points[i].Roll.Value
+                ctrllist[i] = {}
+                local startCtrl = points[i]:FindFirstChild(startctrlName)
+                if startCtrl then ctrllist[i][1] = startCtrl.CFrame end
+                local endCtrl = points[i]:FindFirstChild(endctrlName)
+                if endCtrl then ctrllist[i][2] = endCtrl.CFrame end
+            end
+        end
+        local dist = defaultTiming
+        if usetween then dist = points[2].TweenTime.Value end
+        local progression = t/dist
+        if progression >= 1 then
+            return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value, dist}
+        else
+            return {false,
+                interpolateCF(cframelist, progression, func, ctrllist),
+                func(fovlist, progression),
+                func(rolllist, progression),
+                0}
+        end
+    end
+    local function pathInterp(points, t, func, usetween)
+        if #points <= 0 then
+            return {true, CFrame.new(), 60, 0}
+        end
+        local current_t = t
+        for index, _ in pairs(points) do
+            local next = points[index+1]
+            if next then
+                local pointlist = {}
+                for i = -1,2,1 do
+                    if points[index+i] then
+                        pointlist[i+1] = points[index+i]
+                    end
+                end
+                local segInterp = segmentInterp(pointlist, current_t, func, usetween)
+                local dist = defaultTiming
+                if usetween then dist = segInterp[5] end
+                if segInterp[1] then
+                    current_t = current_t - dist
+                else
+                    return segInterp
+                end
+            end
+        end
+        local lastPoint = points[#points]
+        return {true, lastPoint.CFrame, lastPoint.FOV.Value, lastPoint.Roll.Value}
+    end
+    local m = {}
+    local points = false
+    local renderfolder = false
+    if workspace:FindFirstChild("]] .. m.mvmDirName .. [[") then
+        if workspace.]] .. m.mvmDirName .. [[:FindFirstChild("]] .. m.pathsDirName .. [[") and #workspace.]] .. m.mvmDirName .. [[.]] .. m.pathsDirName .. [[:GetChildren()>0 and workspace.]] .. m.mvmDirName .. [[.]] .. m.pathsDirName .. [[:GetChildren()[1]:FindFirstChild("]] .. m.pointDirName .. [[") then
+            points = workspace.]] .. m.mvmDirName .. [[.]] .. m.pathsDirName .. [[:GetChildren()[1].]] .. m.pointDirName .. [[:GetChildren()
+        end
+        if workspace.]] .. m.mvmDirName .. [[:FindFirstChild("]] .. m.renderDirName .. [[") then
+            renderfolder = workspace.]] .. m.mvmDirName .. [[.]] .. m.renderDirName .. [[
+            renderfolder.Parent = game:GetService("ServerStorage")
+        end
+    end
+    local previewTime = 0
+    local Camera = workspace.CurrentCamera
+    local returnCFrame = Camera.CFrame
+    local returnFOV = Camera.FieldOfView
+    local useTimescale = false
+    local timescale = 1
+    m.previewing = false
+    function m.startPreview(usets, ts)
+        useTimescale = usets
+        timescale = ts
+        previewTime = 0
+        Camera = workspace.CurrentCamera
+        returnCFrame = Camera.CFrame
+        returnFOV = Camera.FieldOfView
+        Camera.CameraType = Enum.CameraType.Scriptable
+        m.previewing = true
+    end
+    function m.stopPreview()
+        Camera = workspace.CurrentCamera
+        Camera.CameraType = Enum.CameraType.Custom
+        Camera.CFrame = returnCFrame
+        Camera.FieldOfView = returnFOV
+        m.previewing = false
+        if renderfolder then renderfolder.Parent = workspace.]] .. m.mvmDirName .. [[ end
+    end
+    game:GetService("RunService").Heartbeat:Connect(function(step)
+        if not points or not m.previewing then return end
+        local scaledTime = previewTime
+        if useTimescale then scaledTime = previewTime * timescale end
+        local previewlocation = pathInterp(points, scaledTime, ]] .. m.interpMethod .. [[, not useTimescale)
+        if not previewlocation[1] then
+            Camera.FieldOfView = previewlocation[3]
+            Camera:SetRoll(math.rad(previewlocation[4]))
+            Camera.CFrame = previewlocation[2]
+        else
+            m.stopPreview()
+        end
+        previewTime = previewTime + step
+    end)
+    return m]]
+    local runscript = Instance.new("Script", newScript)
+    runscript.Name = "Run"
+    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tostring(m.useTimescale) .. ", " .. tscale.timescale .. ")"
+end
+
+
 
 tscale.resetTimescale()
-m.interpMethod = wdg.interpDropdown:GetChoice()
 local RunService = game:GetService("RunService")
 
 util.appendConnection(RunService.Heartbeat:Connect(m.preview))
 
-wdg["pathDropdown"]:GetButton().MouseButton1Click:Connect(m.reloadDropdown)
-
-if workspace:FindFirstChild(m.mvmDirName) then
-    m.checkDir()
-    m.renderPath()
-    m.reconnectPoints()
+function m.initialize()
+    if workspace:FindFirstChild(m.mvmDirName) then
+        m.checkDir()
+        m.renderPath()
+        m.reconnectPoints()
+    end
 end
 
 
