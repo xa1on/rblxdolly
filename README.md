@@ -2,7 +2,7 @@
 
 Movie-making tool for rblxstudio
 
-Utilizes a forked version of [StudioWidget API](https://github.com/TrippTrapp84/StudioWidgets)
+Utilizes [rblxgui](https://github.com/xa1on/rblxguilib)
 
 Message me on discord if you have any issues: something#7597
 
@@ -13,4 +13,4 @@ In order to build this project, install [rojo](https://rojo.space) and run this 
 rojo build --output "C:\Users\[USERNAME]\AppData\Local\Roblox\Plugins\rblxmvm.rbxmx"
 ```
 
-For more help, look through the [the Rojo documentation](https://rojo.space/docs) or the [StudioWidget API](https://github.com/TrippTrapp84/StudioWidgets).
+For more help, look through the [the Rojo documentation](https://rojo.space/docs) or the [rblxguilib repo](https://github.com/xa1on/rblxguilib).
