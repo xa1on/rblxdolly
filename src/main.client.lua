@@ -218,9 +218,7 @@ pathinput:Changed(function(newpath)
     end
 end)
 pathinput:DropdownToggled(function()
-    print("drop")
     dep.dollycam.reloadDropdown()
-    gui.GUIUtil.DumpGUI(widget.Content)
 end)
 dep.dollycam.dropdown = pathinput
 
