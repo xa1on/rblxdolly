@@ -23,11 +23,11 @@ m.playing = false
 -- variables
 
 m.latesttweentime = nil
-m.useTimescale = nil
+m.useTimescale = true
 m.interpMethod = nil
 m.currentPathValue = nil
 m.dropdown = nil
-m.lockctrlbezier = nil
+m.lockctrlbezier = true
 
 m.mvmDirName = "mvmpaths"
 m.renderDirName = "Render"
