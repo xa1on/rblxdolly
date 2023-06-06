@@ -1,6 +1,6 @@
 # RBLXDOLLY
 
-Movie-making tool for rblxstudio
+Campath/Cinematic tool for rblxstudio
 
 Utilizes [rblxgui](https://github.com/xa1on/rblxguilib)
 
