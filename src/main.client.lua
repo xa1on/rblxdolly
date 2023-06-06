@@ -115,9 +115,6 @@ local settingsframe = gui.ScrollingFrame.new(nil, settingspage.Content)
 local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, settingsframe.Content)
 dollycamsettings:SetMain()
 
-local usetimescalecheckbox = gui.Checkbox.new({Value = true})
-gui.Labeled.new({Text = "Use Timescale", LabelSize = UDim.new(0, 75), Object = usetimescalecheckbox})
-
 local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
 gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0, 75), Object = lockcontrolpointscheckbox})
 
@@ -228,10 +225,6 @@ interpolationinput:Changed(function(newinterp)
     dep.HistoryService:SetWaypoint("Changed interpolation methods")
 end)
 dep.dollycam.interpMethod = interpolationinput.Value
-
-usetimescalecheckbox:Clicked(function(newvalue)
-    dep.dollycam.useTimescale = newvalue
-end)
 
 lockcontrolpointscheckbox:Clicked(function(newvalue)
     dep.dollycam.lockctrlbezier = newvalue

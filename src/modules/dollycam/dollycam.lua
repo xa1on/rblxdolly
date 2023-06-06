@@ -23,7 +23,6 @@ m.playing = false
 -- variables
 
 m.latesttweentime = nil
-m.useTimescale = true
 m.interpMethod = nil
 m.currentPathValue = nil
 m.dropdown = nil
@@ -489,10 +488,8 @@ end
 function m.preview(step)
     if not m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local scaledTime = previewTime
-    local useTimescale = m.useTimescale
-    if useTimescale then scaledTime = previewTime * tscale.timescale end
-    local previewLocation = interp.pathInterp(m.grabPoints(), scaledTime, interp[m.interpMethod], not useTimescale)
+    local scaledTime = previewTime * tscale.timescale
+    local previewLocation = interp.pathInterp(m.grabPoints(), scaledTime, interp[m.interpMethod])
     if previewLocation[1] then m.stopPreview() else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Scriptable
@@ -597,7 +594,7 @@ function m.createPlaybackScript()
         local newlv = func(lv, t, clv)
         return CFrame.new(newpv, newpv + newlv)
     end
-    local function segmentInterp(points, t, func, usetween)
+    local function segmentInterp(points, t, func)
         points[0] = points[0] or points[1]
         points[2] = points[2] or points[1]
         points[3] = points[3] or points[2]
@@ -617,8 +614,7 @@ function m.createPlaybackScript()
                 if endCtrl then ctrllist[i][2] = endCtrl.CFrame end
             end
         end
-        local dist = defaultTiming
-        if usetween then dist = points[2].TweenTime.Value end
+        local dist = points[2].TweenTime.Value
         local progression = t/dist
         if progression >= 1 then
             return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value, dist}
@@ -630,7 +626,7 @@ function m.createPlaybackScript()
                 0}
         end
     end
-    local function pathInterp(points, t, func, usetween)
+    local function pathInterp(points, t, func)
         if #points <= 0 then
             return {true, CFrame.new(), 60, 0}
         end
@@ -644,9 +640,8 @@ function m.createPlaybackScript()
                         pointlist[i+1] = points[index+i]
                     end
                 end
-                local segInterp = segmentInterp(pointlist, current_t, func, usetween)
-                local dist = defaultTiming
-                if usetween then dist = segInterp[5] end
+                local segInterp = segmentInterp(pointlist, current_t, func)
+                local dist = segInterp[5]
                 if segInterp[1] then
                     current_t = current_t - dist
                 else
@@ -673,11 +668,9 @@ function m.createPlaybackScript()
     local Camera = workspace.CurrentCamera
     local returnCFrame = Camera.CFrame
     local returnFOV = Camera.FieldOfView
-    local useTimescale = false
     local timescale = 1
     m.previewing = false
-    function m.startPreview(usets, ts)
-        useTimescale = usets
+    function m.startPreview(ts)
         timescale = ts
         previewTime = 0
         Camera = workspace.CurrentCamera
@@ -696,9 +689,8 @@ function m.createPlaybackScript()
     end
     game:GetService("RunService").Heartbeat:Connect(function(step)
         if not points or not m.previewing then return end
-        local scaledTime = previewTime
-        if useTimescale then scaledTime = previewTime * timescale end
-        local previewlocation = pathInterp(points, scaledTime, ]] .. m.interpMethod .. [[, not useTimescale)
+        local scaledTime = previewTime * timescale
+        local previewlocation = pathInterp(points, scaledTime, ]] .. m.interpMethod .. [[)
         if not previewlocation[1] then
             Camera.FieldOfView = previewlocation[3]
             Camera:SetRoll(math.rad(previewlocation[4]))
@@ -711,7 +703,7 @@ function m.createPlaybackScript()
     return m]]
     local runscript = Instance.new("Script", newScript)
     runscript.Name = "Run"
-    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tostring(m.useTimescale) .. ", " .. tscale.timescale .. ")"
+    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ")"
 end
 
 

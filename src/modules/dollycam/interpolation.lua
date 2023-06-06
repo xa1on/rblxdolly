@@ -2,8 +2,6 @@ local m = {}
 
 local util = require(script.Parent.Parent.util)
 
-m.defaultTiming = 2.5
-
 m.startctrlName = "1"
 m.endctrlName = "2"
 
@@ -105,7 +103,7 @@ function m.interpolateCF(path, t, func, control)
     return CFrame.new(newpv, newpv + newlv)
 end
 
-function m.segmentInterp(points, t, func, usetween)
+function m.segmentInterp(points, t, func)
     points[0] = points[0] or points[1]
     points[2] = points[2] or points[1]
     points[3] = points[3] or points[2]
@@ -125,8 +123,7 @@ function m.segmentInterp(points, t, func, usetween)
             if endCtrl then ctrllist[i][2] = endCtrl.CFrame end
         end
     end
-    local dist = m.defaultTiming
-    if usetween then dist = points[2].TweenTime.Value end
+    local dist = points[1].TweenTime.Value
     local progression = t/dist
     if progression >= 1 then
         return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value, dist}
@@ -139,7 +136,7 @@ function m.segmentInterp(points, t, func, usetween)
     end
 end
 
-function m.pathInterp(points, t, func, usetween)
+function m.pathInterp(points, t, func)
     if #points <= 0 then
         return {true, CFrame.new(), 60, 0}
     end
@@ -153,9 +150,8 @@ function m.pathInterp(points, t, func, usetween)
                     pointlist[i+1] = points[index+i]
                 end
             end
-            local segInterp = m.segmentInterp(pointlist, current_t, func, usetween)
-            local dist = m.defaultTiming
-            if usetween then dist = segInterp[5] end
+            local segInterp = m.segmentInterp(pointlist, current_t, func)
+            local dist = segInterp[5]
             if segInterp[1] then
                 current_t = current_t - dist
             else
