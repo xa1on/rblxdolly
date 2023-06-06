@@ -72,15 +72,15 @@ local pathoptions = gui.Section.new({Text = "Path Options", Open = true})
 pathoptions:SetMain()
 
 local pathinput = gui.InputField.new({Placeholder = "Path Name"})
-gui.Labeled.new({Text = "Path", LabelSize = UDim.new(0,75), Object = pathinput})
+gui.Labeled.new({Text = "Path", LabelSize = UDim.new(0,85), Object = pathinput})
 
 gui.ListFrame.new({Height = 5})
 
 local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Manual Curve", Value = "bezierInterp"}, Items = {{Name = "Manual Curve", Value = "bezierInterp"}, {Name = "Linear", Value = "linearInterp"}, {Name = "Cubic Curve", Value = "cubicInterp"}}, DisableEditing = true})
-gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,75), Object = interpolationinput})
+gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = interpolationinput})
 
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
-gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,75), Object = timescaleinput})
+gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput})
 
 gui.ListFrame.new({Height = 5})
 
@@ -93,15 +93,16 @@ gui.ListFrame.new({Height = 5})
 local pointoptions = gui.Section.new({Text = "Point Options", Open = true}, mainpageframe.Content)
 pointoptions:SetMain()
 
-local tweentimeinput = gui.InputField.new({Placeholder = "Tween Time Value", Value = 2.5, NoDropdown = true})
-gui.Labeled.new({Text = "Tween Time", LabelSize = UDim.new(0,75), Object = tweentimeinput})
+-- AKA tweentime
+local tweentimeinput = gui.InputField.new({Placeholder = "Transition Time Value", Value = 2.5, NoDropdown = true})
+gui.Labeled.new({Text = "Transition Time", LabelSize = UDim.new(0,85), Object = tweentimeinput})
 
 local fovinput = gui.InputField.new({Placeholder = "FOV Value", Value = math.round(workspace.CurrentCamera.FieldOfView), NoDropdown = true})
 local fovslider = gui.Slider.new({Min = 0, Max = 120, Increment = 1})
-gui.Labeled.new({Text = "FOV", LabelSize = UDim.new(0,75), Objects = {{Object = fovinput, Name = "input", Size = UDim.new(0.3,0)}, {Object = fovslider, Name = "slider"}}})
+gui.Labeled.new({Text = "FOV", LabelSize = UDim.new(0,85), Objects = {{Object = fovinput, Name = "input", Size = UDim.new(0.3,0)}, {Object = fovslider, Name = "slider"}}})
 
 local rollinput = gui.InputField.new({Placeholder = "Roll Value", Value = 0, NoDropdown = true})
-gui.Labeled.new({Text = "Roll", LabelSize = UDim.new(0,75), Object = rollinput})
+gui.Labeled.new({Text = "Roll", LabelSize = UDim.new(0,85), Object = rollinput})
 
 local previeweditroll = gui.Button.new({Text = "Preview/Edit Roll", ButtonSize = 0.5})
 
@@ -116,7 +117,7 @@ local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, setti
 dollycamsettings:SetMain()
 
 local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
-gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0, 75), Object = lockcontrolpointscheckbox})
+gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0, 85), Object = lockcontrolpointscheckbox})
 
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
 
