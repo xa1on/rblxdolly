@@ -82,6 +82,9 @@ gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = in
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
 gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput})
 
+local scrubpathslider = gui.Slider.new({Min = 0, Max = 1})
+gui.Labeled.new({Text = "Scrub Path", LabelSize = UDim.new(0, 85), Object = scrubpathslider})
+
 gui.ListFrame.new({Height = 5})
 
 local startstopplayback = gui.Button.new({Text = "Start/Stop Playback", ButtonSize = 0.5})
@@ -105,6 +108,8 @@ local rollinput = gui.InputField.new({Placeholder = "Roll Value", Value = 0, NoD
 gui.Labeled.new({Text = "Roll", LabelSize = UDim.new(0,85), Object = rollinput})
 
 local previeweditroll = gui.Button.new({Text = "Preview/Edit Roll", ButtonSize = 0.5})
+
+local recallpoint = gui.Button.new({Text = "Preview Selected Point", ButtonSize = 0.55})
 
 local settingspage = gui.Page.new({
     Name = "SETTINGS",
@@ -164,6 +169,24 @@ end
 previeweditroll:Clicked(editRoll)
 createKeybind("Edit Roll", editRoll)
 
+local function recallPoint()
+    local selection = dep.Selection:Get()
+    if not dep.dollycam.playing and #selection==1 then
+        dep.dollycam.saveCam()
+        local Camera = workspace.CurrentCamera
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.CFrame = selection[1].CFrame
+        Camera.FieldOfView = selection[1].FOV.Value
+        Camera:SetRoll(math.rad(selection[1].Roll.Value))
+    end
+end
+local function leavePoint()
+    dep.dollycam.recallCam()
+end
+recallpoint:Pressed(recallPoint)
+recallpoint:Released(leavePoint)
+createKeybind("Preview Selected Point")
+
 local function clearctrlbezier()
     if not dep.dollycam.playing then
         dep.dollycam.clearCtrl()
@@ -188,6 +211,14 @@ fovinput:Changed(function(newfov)
         if fovslider.Value ~= newfov then fovslider:SetValue(newfov) end
     end
 end)
+
+scrubpathslider:Changed(function(progress)
+    if not dep.dollycam.playing then
+        dep.dollycam.goToProgress(progress)
+    end
+end)
+scrubpathslider:Pressed(function() dep.dollycam.saveCam() end)
+scrubpathslider:Released(function() dep.dollycam.recallCam() end)
 
 rollinput:Changed(function(newroll)
     if tonumber(newroll) then

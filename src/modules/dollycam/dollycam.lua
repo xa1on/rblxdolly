@@ -500,6 +500,41 @@ function m.preview(step)
     previewTime = previewTime + step
 end
 
+function m.saveCam()
+    if m.playing then return end
+    local Camera = workspace.CurrentCamera
+    m.returnCFrame = Camera.CFrame
+    m.returnFOV = Camera.FieldOfView
+end
+
+function m.recallCam()
+    if m.playing then return end
+    local Camera = workspace.CurrentCamera
+    Camera.CameraType = Enum.CameraType.Custom
+    Camera.CFrame = m.returnCFrame
+    Camera.FieldOfView = m.returnFOV
+end
+
+function m.goToProgress(progress)
+    if m.playing then return end
+    if setRoll.roll_active then setRoll.toggleRollGui() end
+    local totalTime = 0
+    local points = m.grabPoints()
+    for i, v in points do
+        if i == #points then break end
+        totalTime += v.TweenTime.Value
+    end
+    local time = progress*totalTime
+    local previewLocation = interp.pathInterp(points, time, interp[m.interpMethod])
+    if previewLocation[1] then return else
+        local Camera = workspace.CurrentCamera
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.FieldOfView = previewLocation[3]
+        Camera:SetRoll(math.rad(previewLocation[4]))
+        Camera.CFrame = previewLocation[2]
+    end
+end
+
 function m.createPlaybackScript()
     if workspace:FindFirstChild(m.scriptName) then workspace[m.scriptName]:Destroy() end
     local newScript = Instance.new("ModuleScript", workspace)
