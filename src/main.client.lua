@@ -86,7 +86,8 @@ local scrubpathslider = gui.Slider.new({Min = 0, Max = 1})
 gui.Labeled.new({Text = "Scrub Path", LabelSize = UDim.new(0, 85), Object = scrubpathslider})
 
 local syncmoontimeline  = gui.Checkbox.new({Value = true})
-gui.Labeled.new({Text = "Sync Moon Timeline", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
+local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Moon Timeline", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
+if not _G.MoonGlobal then lsyncMASTLgui:SetDisabled(true) end
 
 local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
 gui.Labeled.new({Text = "Match Moon Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})

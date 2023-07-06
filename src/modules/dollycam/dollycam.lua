@@ -748,12 +748,13 @@ tscale.resetTimescale()
 local RunService = game:GetService("RunService")
 
 local moon = _G.MoonGlobal
-local MASLS = moon.Windows.MoonAnimator.g_e.LayerSystem
+local MASLS
 local previouskf = 0
+if moon then MASLS = moon.Windows.MoonAnimator.g_e.LayerSystem end
 
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
     m.preview(step)
-    if m.playing then return end
+    if m.playing and not moon then return end
     local framenum = moon.time_offset + MASLS.SliderFrame
     if m.syncMAStl then
         if previouskf ~= framenum then
