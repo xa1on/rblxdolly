@@ -3,6 +3,8 @@ local repStorage = game:GetService("ReplicatedStorage")
 local m = {}
 m.connections = {}
 
+m.detectionlist = {}
+
 function m.mvmprint(t)
     print("[" .. t .. " - RBLXDOLLY]")
 end

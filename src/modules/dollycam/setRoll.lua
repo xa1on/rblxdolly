@@ -51,8 +51,8 @@ end
 
 function m.setCamRot(r)
 	m.cam = workspace.CurrentCamera
-	m.cam.CameraType = Enum.CameraType.Scriptable
-	m.cam:SetRoll(r)
+    local rollCFrame = CFrame.Angles(0,0,r)
+	m.cam.CFrame = m.cam.CFrame * rollCFrame
 end
 
 tb.FocusLost:Connect(function()
@@ -101,7 +101,7 @@ function m.toggleRollGui()
 	m.roll_active = not m.roll_active
 	tb_roll.Visible = m.roll_active
 	if not m.roll_active then
-		workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+		--workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
     elseif m.angle then
         m.setCamRot(math.rad(m.angle))
     end

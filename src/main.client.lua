@@ -85,6 +85,12 @@ gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timesc
 local scrubpathslider = gui.Slider.new({Min = 0, Max = 1})
 gui.Labeled.new({Text = "Scrub Path", LabelSize = UDim.new(0, 85), Object = scrubpathslider})
 
+local syncmoontimeline  = gui.Checkbox.new({Value = true})
+gui.Labeled.new({Text = "Sync Moon Timeline", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
+
+local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
+gui.Labeled.new({Text = "Match Moon Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})
+
 gui.ListFrame.new({Height = 5})
 
 local startstopplayback = gui.Button.new({Text = "Start/Stop Playback", ButtonSize = 0.5})
@@ -174,10 +180,9 @@ local function recallPoint()
     if not dep.dollycam.playing and #selection==1 then
         dep.dollycam.saveCam()
         local Camera = workspace.CurrentCamera
-        Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.CFrame = selection[1].CFrame
+        --Camera.CameraType = Enum.CameraType.Scriptable
         Camera.FieldOfView = selection[1].FOV.Value
-        Camera:SetRoll(math.rad(selection[1].Roll.Value))
+        Camera.CFrame = selection[1].CFrame * CFrame.Angles(0,0,math.rad(selection[1].Roll.Value))
     end
 end
 local function leavePoint()
@@ -185,7 +190,6 @@ local function leavePoint()
 end
 recallpoint:Pressed(recallPoint)
 recallpoint:Released(leavePoint)
-createKeybind("Preview Selected Point")
 
 local function clearctrlbezier()
     if not dep.dollycam.playing then
@@ -219,6 +223,28 @@ scrubpathslider:Changed(function(progress)
 end)
 scrubpathslider:Pressed(function() dep.dollycam.saveCam() end)
 scrubpathslider:Released(function() dep.dollycam.recallCam() end)
+
+local function syncMAStl(value)
+    if value == nil then value = syncmoontimeline.Value() end
+    dep.dollycam.syncMAStl = value
+end
+syncmoontimeline:Clicked(function(value)
+    if not dep.dollycam.playing then
+        syncMAStl(value)
+    end
+end)
+createKeybind("Toggle MAS Sync", syncMAStl)
+
+local function matchMASkf(value)
+    if value == nil then value = matchmoonkeyframe.Value() end
+    dep.dollycam.matchMASkf = value
+end
+matchmoonkeyframe:Clicked(function(value)
+    if not dep.dollycam.playing then
+        matchMASkf(value)
+    end
+end)
+createKeybind("Match MAS Keyframes", matchMASkf)
 
 rollinput:Changed(function(newroll)
     if tonumber(newroll) then

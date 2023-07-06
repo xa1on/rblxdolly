@@ -21,6 +21,8 @@ local returnFOV
 m.playing = false
 
 -- variables
+m.syncMAStl = true
+m.matchMASkf = false
 
 m.latesttweentime = nil
 m.interpMethod = nil
@@ -72,6 +74,7 @@ m.pointProperties = {
         dirsize = Vector3.new(0.02, 0.02, 0.5)
     }
 }
+
 
 
 
@@ -485,21 +488,6 @@ function m.stopPreview()
     m.renderPath()
 end
 
-function m.preview(step)
-    if not m.playing then return end
-    if setRoll.roll_active then setRoll.toggleRollGui() end
-    local scaledTime = previewTime * tscale.timescale
-    local previewLocation = interp.pathInterp(m.grabPoints(), scaledTime, interp[m.interpMethod])
-    if previewLocation[1] then m.stopPreview() else
-        local Camera = workspace.CurrentCamera
-        Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.FieldOfView = previewLocation[3]
-        Camera:SetRoll(math.rad(previewLocation[4]))
-        Camera.CFrame = previewLocation[2]
-    end
-    previewTime = previewTime + step
-end
-
 function m.saveCam()
     if m.playing then return end
     local Camera = workspace.CurrentCamera
@@ -515,6 +503,27 @@ function m.recallCam()
     Camera.FieldOfView = m.returnFOV
 end
 
+function m.goToTime(currenttime)
+    local points = m.grabPoints()
+    local previewLocation = interp.pathInterp(points, currenttime, interp[m.interpMethod])
+    if previewLocation[1] then return true else
+        local Camera = workspace.CurrentCamera
+        Camera.CameraType = Enum.CameraType.Custom
+        Camera.FieldOfView = previewLocation[3]
+        Camera.CFrame = previewLocation[2] * CFrame.Angles(0,0,math.rad(previewLocation[4]))
+    end
+end
+
+function m.preview(step)
+    if not m.playing then return end
+    if setRoll.roll_active then setRoll.toggleRollGui() end
+    local scaledTime = previewTime * tscale.timescale
+    if m.goToTime(scaledTime) then
+        m.stopPreview()
+    end
+    previewTime = previewTime + step
+end
+
 function m.goToProgress(progress)
     if m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
@@ -524,15 +533,8 @@ function m.goToProgress(progress)
         if i == #points then break end
         totalTime += v.TweenTime.Value
     end
-    local time = progress*totalTime
-    local previewLocation = interp.pathInterp(points, time, interp[m.interpMethod])
-    if previewLocation[1] then return else
-        local Camera = workspace.CurrentCamera
-        Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.FieldOfView = previewLocation[3]
-        Camera:SetRoll(math.rad(previewLocation[4]))
-        Camera.CFrame = previewLocation[2]
-    end
+    local currenttime = progress*totalTime
+    m.goToTime(currenttime)
 end
 
 function m.createPlaybackScript()
@@ -711,7 +713,7 @@ function m.createPlaybackScript()
         Camera = workspace.CurrentCamera
         returnCFrame = Camera.CFrame
         returnFOV = Camera.FieldOfView
-        Camera.CameraType = Enum.CameraType.Scriptable
+        --Camera.CameraType = Enum.CameraType.Scriptable
         m.previewing = true
     end
     function m.stopPreview()
@@ -728,8 +730,7 @@ function m.createPlaybackScript()
         local previewlocation = pathInterp(points, scaledTime, ]] .. m.interpMethod .. [[)
         if not previewlocation[1] then
             Camera.FieldOfView = previewlocation[3]
-            Camera:SetRoll(math.rad(previewlocation[4]))
-            Camera.CFrame = previewlocation[2]
+            Camera.CFrame = previewLocation[2] * CFrame.Angles(0,0,math.rad(previewLocation[4]))
         else
             m.stopPreview()
         end
@@ -746,7 +747,22 @@ end
 tscale.resetTimescale()
 local RunService = game:GetService("RunService")
 
-util.appendConnection(RunService.Heartbeat:Connect(m.preview))
+local moon = _G.MoonGlobal
+local MASLS = moon.Windows.MoonAnimator.g_e.LayerSystem
+local previouskf = 0
+
+util.appendConnection(RunService.Heartbeat:Connect(function(step)
+    m.preview(step)
+    if m.playing then return end
+    local framenum = moon.time_offset + MASLS.SliderFrame
+    if m.syncMAStl then
+        if previouskf ~= framenum then
+            previouskf = framenum
+            local fps = moon.current_fps
+            m.goToTime((framenum/fps)*tscale.timescale)
+        end
+    end
+end))
 
 function m.initialize()
     if workspace:FindFirstChild(m.mvmDirName) then
