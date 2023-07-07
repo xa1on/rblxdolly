@@ -80,7 +80,7 @@ local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Manual Cur
 gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = interpolationinput})
 
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
-local timescalelabel = gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput, Disabled = true})
+local timescalelabel = gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput})
 
 local scrubpathslider = gui.Slider.new({Min = 0, Max = 1})
 gui.Labeled.new({Text = "Scrub Path", LabelSize = UDim.new(0, 85), Object = scrubpathslider})
@@ -90,6 +90,8 @@ gui.ListFrame.new({Height = 5})
 local startstopplayback = gui.Button.new({Text = "Start/Stop Playback", ButtonSize = 0.5})
 
 local resetcontrolpoints = gui.Button.new({Text = "Reset All Control Points", ButtonSize = 0.55})
+
+local scaleMASpathtotl = gui.Button.new({Text = "Scale Path To Moon Timeline Length"})
 
 gui.ListFrame.new({Height = 5})
 
@@ -130,8 +132,8 @@ MASsettings:SetMain()
 local syncmoontimeline  = gui.Checkbox.new({Value = true})
 local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Timelines", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
 
-local scaletoMASTLlength = gui.Checkbox.new({Value = true})
-local lscaletoMASTLlength = gui.Labeled.new({Text = "Scale Path to Timeline", LabelSize = UDim.new(0.35,0), Object = scaletoMASTLlength})
+local scaletoMASTLlength = gui.Checkbox.new({Value = false})
+local lscaletoMASTLlength = gui.Labeled.new({Text = "Auto Scale Path to Timeline", LabelSize = UDim.new(0.35,0), Object = scaletoMASTLlength})
 
 local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
 gui.Labeled.new({Text = "Match Camera Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})
@@ -141,7 +143,7 @@ if not _G.MoonGlobal then
     lsyncMASTLgui:SetValue(false)
     lscaletoMASTLlength:SetDisabled(true)
     lscaletoMASTLlength:SetValue(false)
-    timescalelabel:SetDisabled(false)
+    scaleMASpathtotl:SetDisabled(true)
 end
 
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
@@ -213,6 +215,13 @@ end
 resetcontrolpoints:Clicked(clearctrlbezier)
 createKeybind("Reset Control Points", clearctrlbezier)
 
+local function scaleMASpath()
+    if dep.dollycam.playing then return end
+    dep.dollycam.scaleTLTween()
+end
+scaleMASpathtotl:Clicked(scaleMASpath)
+createKeybind("Moon Timeline Scale", scaleMASpath)
+
 timescaleinput:Changed(function(newts)
     if tonumber(newts) then
         dep.timescale.timescale = newts
@@ -267,7 +276,7 @@ scaletoMASTLlength:Clicked(function(value)
         scaleMASTLlength(value)
     end
 end)
-createKeybind("Moon Path Timeline Scale", scaleMASTLlength)
+createKeybind("Moon Timeline Auto-Scale", scaleMASTLlength)
 
 local function matchMASkf(value)
     if value == nil then

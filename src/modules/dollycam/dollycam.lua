@@ -22,7 +22,7 @@ m.playing = false
 
 -- variables
 m.syncMAStl = true
-m.scaleMAStl = true
+m.scaleMAStl = false
 m.matchMASkf = false
 
 m.latesttweentime = nil
@@ -771,6 +771,17 @@ function m.scaleTL()
     local newts = m.getLength()/(tllength/fps)
     tscale.timescale = newts
     m.tsinput:SetValue(newts)
+end
+
+function m.scaleTLTween()
+    if m.playing or (not moon) or (not MASLS) then return end
+    local points = m.grabPoints()
+    local tllength = MASLS.length
+    local fps = moon.current_fps
+    local scale = m.getLength()/(tllength/fps)
+    for _, v in pairs(points) do
+        v.TweenTime.Value = v.TweenTime.Value / scale
+    end
 end
 
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
