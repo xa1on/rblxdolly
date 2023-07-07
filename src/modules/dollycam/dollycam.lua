@@ -22,12 +22,14 @@ m.playing = false
 
 -- variables
 m.syncMAStl = true
+m.scaleMAStl = true
 m.matchMASkf = false
 
 m.latesttweentime = nil
 m.interpMethod = nil
 m.currentPathValue = nil
 m.dropdown = nil
+m.tsinput = nil
 m.lockctrlbezier = true
 
 m.mvmDirName = "mvmpaths"
@@ -457,6 +459,10 @@ function m.createPoint()
     local tweenTime = Instance.new("NumberValue", newPoint)
         tweenTime.Name = "TweenTime"
         tweenTime.Value = m.latesttweentime
+    util.appendConnection(tweenTime.Changed:Connect(function()
+        if not m.scaleMAStl then return end
+        m.scaleTL()
+    end))
     m.createControlPoints(newPoint, points[#points])
     m.renderPoint(newPoint)
     if m.interpMethod == "bezierInterp" and #points > 0 then
@@ -503,6 +509,16 @@ function m.recallCam()
     Camera.FieldOfView = m.returnFOV
 end
 
+function m.getLength()
+    local totalTime = 0
+    local points = m.grabPoints()
+    for i, v in points do
+        if i == #points then break end
+        totalTime += v.TweenTime.Value
+    end
+    return totalTime
+end
+
 function m.goToTime(currenttime)
     local points = m.grabPoints()
     local previewLocation = interp.pathInterp(points, currenttime, interp[m.interpMethod])
@@ -527,13 +543,7 @@ end
 function m.goToProgress(progress)
     if m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local totalTime = 0
-    local points = m.grabPoints()
-    for i, v in points do
-        if i == #points then break end
-        totalTime += v.TweenTime.Value
-    end
-    local currenttime = progress*totalTime
+    local currenttime = progress*m.getLength()
     m.goToTime(currenttime)
 end
 
@@ -750,17 +760,36 @@ local RunService = game:GetService("RunService")
 local moon = _G.MoonGlobal
 local MASLS
 local previouskf = 0
+local previoustllength = 0
+local previousfps = 0
 if moon then MASLS = moon.Windows.MoonAnimator.g_e.LayerSystem end
+
+function m.scaleTL()
+    if m.playing or (not moon) or (not MASLS) then return end
+    local tllength = MASLS.length
+    local fps = moon.current_fps
+    local newts = m.getLength()/(tllength/fps)
+    tscale.timescale = newts
+    m.tsinput:SetValue(newts)
+end
 
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
     m.preview(step)
     if m.playing or (not moon) or (not MASLS) then return end
     local framenum = moon.time_offset + MASLS.SliderFrame
+    local tllength = MASLS.length
+    local fps = moon.current_fps
     if m.syncMAStl then
         if previouskf ~= framenum then
             previouskf = framenum
-            local fps = moon.current_fps
             m.goToTime((framenum/fps)*tscale.timescale)
+        end
+    end
+    if m.scaleMAStl then
+        if previousfps ~= fps or previoustllength then
+            previousfps = fps
+            previoustllength = tllength
+            m.scaleTL()
         end
     end
 end))

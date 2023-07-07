@@ -80,17 +80,10 @@ local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Manual Cur
 gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = interpolationinput})
 
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
-gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput})
+local timescalelabel = gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput, Disabled = true})
 
 local scrubpathslider = gui.Slider.new({Min = 0, Max = 1})
 gui.Labeled.new({Text = "Scrub Path", LabelSize = UDim.new(0, 85), Object = scrubpathslider})
-
-local syncmoontimeline  = gui.Checkbox.new({Value = true})
-local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Moon Timeline", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
-if not _G.MoonGlobal then lsyncMASTLgui:SetDisabled(true) end
-
-local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
-gui.Labeled.new({Text = "Match Moon Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})
 
 gui.ListFrame.new({Height = 5})
 
@@ -131,21 +124,41 @@ dollycamsettings:SetMain()
 local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
 gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0, 85), Object = lockcontrolpointscheckbox})
 
+local MASsettings = gui.Section.new({Text = "Moon Animator", Open = true}, settingsframe.Content)
+MASsettings:SetMain()
+
+local syncmoontimeline  = gui.Checkbox.new({Value = true})
+local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Timelines", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
+
+local scaletoMASTLlength = gui.Checkbox.new({Value = true})
+local lscaletoMASTLlength = gui.Labeled.new({Text = "Scale Path to Timeline", LabelSize = UDim.new(0.35,0), Object = scaletoMASTLlength})
+
+local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
+gui.Labeled.new({Text = "Match Camera Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})
+
+if not _G.MoonGlobal then
+    lsyncMASTLgui:SetDisabled(true)
+    lsyncMASTLgui:SetValue(false)
+    lscaletoMASTLlength:SetDisabled(true)
+    lscaletoMASTLlength:SetValue(false)
+    timescalelabel:SetDisabled(false)
+end
+
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
 
 local savedkeybinds = plugin:GetSetting("rblxdolly saved keybinds") or {}
 local function createKeybind(title, action, default, binds)
     if savedkeybinds[title] then default = savedkeybinds[title] end
     local newkeybind = gui.KeybindInputField.new({Action = action, CurrentBind = default, Binds = binds})
-    gui.Labeled.new({Text = title, LabelSize = 0.4, Object = newkeybind}, gui.ListFrame.new(nil, keybindsection.Content).Content)
+    gui.Labeled.new({Text = title, LabelSize = 0.5, Object = newkeybind}, gui.ListFrame.new(nil, keybindsection.Content).Content)
     newkeybind:Changed(function(p)
         savedkeybinds[title] = p
     end)
 end
 
-local dep = require(script.Parent.dependencies)
-
 createKeybind("Toggle Widget", function() widget.Content.Enabled = not widget.Content.Enabled end, {{"LeftControl", "LeftShift", "T"}})
+
+local dep = require(script.Parent.dependencies)
 
 local function createPoint()
     if not dep.dollycam.playing then
@@ -205,6 +218,7 @@ timescaleinput:Changed(function(newts)
         dep.timescale.timescale = newts
     end
 end)
+dep.dollycam.tsinput = timescaleinput
 
 fovslider:Changed(function(newfov)
     workspace.CurrentCamera.FieldOfView = newfov
@@ -226,7 +240,10 @@ scrubpathslider:Pressed(function() dep.dollycam.saveCam() end)
 scrubpathslider:Released(function() dep.dollycam.recallCam() end)
 
 local function syncMAStl(value)
-    if value == nil then value = syncmoontimeline.Value() end
+    if value == nil then
+        value = not syncmoontimeline.Value()
+        syncmoontimeline:SetValue(value)
+    end
     dep.dollycam.syncMAStl = value
 end
 syncmoontimeline:Clicked(function(value)
@@ -234,10 +251,29 @@ syncmoontimeline:Clicked(function(value)
         syncMAStl(value)
     end
 end)
-createKeybind("Toggle MAS Sync", syncMAStl)
+createKeybind("Moon Timeline Sync", syncMAStl)
+
+local function scaleMASTLlength(value)
+    if value == nil then
+        value = not scaletoMASTLlength.Value()
+        scaletoMASTLlength:SetValue(value)
+    end
+    dep.dollycam.scaleMAStl = value
+    timescalelabel:SetDisabled(value)
+    if value then dep.dollycam.scaleTL() end
+end
+scaletoMASTLlength:Clicked(function(value)
+    if not dep.dollycam.playing then
+        scaleMASTLlength(value)
+    end
+end)
+createKeybind("Moon Path Timeline Scale", scaleMASTLlength)
 
 local function matchMASkf(value)
-    if value == nil then value = matchmoonkeyframe.Value() end
+    if value == nil then
+        value = not matchmoonkeyframe.Value()
+        matchmoonkeyframe:SetValue(value)
+    end
     dep.dollycam.matchMASkf = value
 end
 matchmoonkeyframe:Clicked(function(value)
@@ -245,7 +281,7 @@ matchmoonkeyframe:Clicked(function(value)
         matchMASkf(value)
     end
 end)
-createKeybind("Match MAS Keyframes", matchMASkf)
+createKeybind("Match Moon Keyframes", syncMAStl)
 
 rollinput:Changed(function(newroll)
     if tonumber(newroll) then
