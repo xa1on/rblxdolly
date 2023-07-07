@@ -250,7 +250,7 @@ function m.point(cf, parent, name, locked, transparent)
     local newPoint = Instance.new("Part", parent)
     newPoint.Size = Vector3.new(1,1,1)
     newPoint.Name = name
-    newPoint.CFrame = cf
+    newPoint.CFrame = util.setCFRoll(cf, 0)
     newPoint.TopSurface = Enum.SurfaceType.SmoothNoOutlines
     newPoint.BottomSurface = Enum.SurfaceType.SmoothNoOutlines
     newPoint.FrontSurface = Enum.SurfaceType.Studs
@@ -510,7 +510,7 @@ function m.goToTime(currenttime)
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Custom
         Camera.FieldOfView = previewLocation[3]
-        Camera.CFrame = previewLocation[2] * CFrame.Angles(0,0,math.rad(previewLocation[4]))
+        Camera.CFrame = util.setCFRoll(previewLocation[2], math.rad(previewLocation[4]))
     end
 end
 

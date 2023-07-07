@@ -56,6 +56,12 @@ function m.clearConnections()
     m.mvmprint("Connections Cleared")
 end
 
+function m.setCFRoll(cf, r)
+    local pitch, yaw, _ = cf:ToEulerAnglesYXZ()
+	cf = CFrame.fromEulerAnglesYXZ(pitch, yaw, r) + cf.Position
+    return cf
+end
+
 function m.appendConnection(connection)
     m.connections[#m.connections+1] = connection
 end

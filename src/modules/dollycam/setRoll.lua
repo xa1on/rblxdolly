@@ -1,6 +1,7 @@
 local m = {}
 local inputService = game:GetService("UserInputService")
 local coreGui = game:GetService("CoreGui")
+local util = require(script.Parent.Parent.util)
 
 m.inputbox = nil
 
@@ -51,8 +52,7 @@ end
 
 function m.setCamRot(r)
 	m.cam = workspace.CurrentCamera
-    local rollCFrame = CFrame.Angles(0,0,r)
-	m.cam.CFrame = m.cam.CFrame * rollCFrame
+    m.cam.CFrame = util.setCFRoll(m.cam.CFrame, r)
 end
 
 tb.FocusLost:Connect(function()
@@ -93,15 +93,15 @@ local function stopDrag()
 	m.holding = false
 end
 
-tb_roll.MouseButton1Up:Connect(stopDrag)
-tb_roll.MouseEnter:Connect(stopDrag)
-tb_roll.MouseLeave:Connect(stopDrag)
+util.appendConnection(tb_roll.MouseButton1Up:Connect(stopDrag))
+util.appendConnection(tb_roll.MouseEnter:Connect(stopDrag))
+util.appendConnection(tb_roll.MouseLeave:Connect(stopDrag))
 
 function m.toggleRollGui()
 	m.roll_active = not m.roll_active
 	tb_roll.Visible = m.roll_active
 	if not m.roll_active then
-		--workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+		workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
     elseif m.angle then
         m.setCamRot(math.rad(m.angle))
     end
@@ -113,10 +113,10 @@ function m.setRollTo(r)
     m.updateTextBoxAngle()
 end
 
-inputService.InputChanged:Connect(function(input)
+util.appendConnection(inputService.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseWheel and m.roll_active == true then
         m.setRollTo(m.angle+(input.Position.Z)*2)
     end
-end)
+end))
 
 return m
