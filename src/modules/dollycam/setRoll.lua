@@ -15,6 +15,7 @@ local colors = {
 }
 
 local gui_roll = Instance.new("ScreenGui", coreGui)
+gui_roll.Name = "ROLLGUI"
 local tb_roll = Instance.new("TextButton", gui_roll)
     m.roll_active = false
     tb_roll.Visible = false

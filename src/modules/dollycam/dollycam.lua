@@ -748,8 +748,9 @@ tscale.resetTimescale()
 local RunService = game:GetService("RunService")
 
 local moon = _G.MoonGlobal
-local MASLS = util.notnill(moon.Windows.MoonAnimator.g_e.LayerSystem)
+local MASLS
 local previouskf = 0
+if moon then MASLS = moon.Windows.MoonAnimator.g_e.LayerSystem end
 
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
     m.preview(step)

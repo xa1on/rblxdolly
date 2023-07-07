@@ -301,7 +301,7 @@ end)]]
 dep.util.appendConnection(plugin.Unloading:Connect(function()
     dep.util.mvmprint("Unloading Plugin")
     local coreGui = game:GetService("CoreGui")
-    for _, v in pairs(coreGui:GetChildren()) do v:Destroy() end
+    coreGui:FindFirstChild("ROLLGUI"):Destroy()
     dep.util.clearConnections()
     plugin:SetSetting("rblxdolly saved keybinds", savedkeybinds)
 end))
