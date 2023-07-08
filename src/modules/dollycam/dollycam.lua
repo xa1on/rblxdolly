@@ -291,6 +291,7 @@ function m.createDirection(cf, parent, name, type)
     newPoint.Locked = true
     newPoint.Material = Enum.Material.Neon
     newPoint.Anchored = true
+    return newPoint
 end
 
 function m.createLine(p1, p2, type, parent, num)
@@ -373,10 +374,9 @@ function m.renderSegment(target, parent)
         local t = 1
         local betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
         while betweenCF[1] ~= true do
-            local newBTP = m.point(betweenCF[2], parent, t, true)
-            newBTP.Size = Vector3.new(0.05,0.05,0.05)
-            m.pointGui(newBTP, t, "path", newBTP)
-            m.createDirection(betweenCF[2], newBTP, t, "path")
+            local direction = m.createDirection(betweenCF[2], parent, t, "path")
+            local pointgui = m.pointGui(direction, t, "path", direction)
+            pointgui.StudsOffsetWorldSpace = Vector3.new(0,0,0.25)
             t = t + 1
             betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
         end
@@ -779,7 +779,8 @@ function m.scaleTLTween()
     local tllength = MASLS.length
     local fps = moon.current_fps
     local scale = m.getLength()/(tllength/fps)
-    for _, v in pairs(points) do
+    for i, v in pairs(points) do
+        if i == #points then break end
         v.TweenTime.Value = v.TweenTime.Value / scale
     end
 end
