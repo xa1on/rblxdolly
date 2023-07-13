@@ -28,15 +28,35 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
+local version = "0.5"
+local newestversion
+local outofdate = false
+
+-- version check
+pcall(function()
+    local plugindesc = game:GetService("MarketplaceService"):GetProductInfo(9657949764).Description
+    if plugindesc then
+        local _, versionstr = string.find(plugindesc, "version: ")
+        if versionstr then
+            newestversion = string.sub(plugindesc, versionstr + 1)
+            outofdate = newestversion ~= version
+        end
+    end
+end)
+
 local HttpService = game:GetService("HttpService")
 
 local moduledir = script.Parent.modules
-local gui = require(moduledir.rblxgui.initialize)(plugin, "rblxdolly")
+local gui = require(moduledir.rblxgui.initialize)(plugin, "RBLXDOLLY")
 
 -- toolbar
-local toolbar = plugin:CreateToolbar("rblxdolly")
+local toolbarname = "RBLXDOLLY - v" .. version
+if outofdate then toolbarname = "RBLXDOLLY - Update available" end
+local toolbar = plugin:CreateToolbar(toolbarname)
 
-local widget = gui.PluginWidget.new({ID = "rblxdolly", Enabled = false, DockState = Enum.InitialDockState.Left, Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(game:GetService("StudioService"):GetUserId())})
+local widgettitle = "RBLXDOLLY v" .. version .. " - " .. game:GetService("Players"):GetNameFromUserIdAsync(game:GetService("StudioService"):GetUserId())
+if outofdate then widgettitle = "RBLXDOLLY - Update available" end
+local widget = gui.PluginWidget.new({ID = "rblxdolly", Enabled = false, DockState = Enum.InitialDockState.Left, Title = widgettitle})
 
 local b_toggle = toolbar:CreateButton("Toggle","Toggle widget","")
 b_toggle.Click:Connect(function() widget.Content.Enabled = not widget.Content.Enabled end)
@@ -173,6 +193,16 @@ local function createKeybind(title, action, default, binds)
 end
 
 createKeybind("Toggle Widget", function() widget.Content.Enabled = not widget.Content.Enabled end, {{"LeftControl", "LeftShift", "T"}})
+
+settingsframe:SetMain()
+
+gui.ListFrame.new({Height = 5})
+
+gui.Textbox.new({
+    Text = "Current version: v" .. version,
+    Alignment = Enum.TextXAlignment.Center,
+    TextSize = 12
+})
 
 local dep = require(script.Parent.dependencies)
 
@@ -372,5 +402,11 @@ dep.util.appendConnection(plugin.Unloading:Connect(function()
     dep.util.clearConnections()
     plugin:SetSetting("rblxdolly saved keybinds", savedkeybinds)
 end))
+
+if outofdate then
+    dep.util.mvmprint("OUT OF DATE - Version: " .. version .. " -> " .. newestversion)
+else
+    dep.util.mvmprint("Version: " .. version)
+end
 
 dep.util.mvmprint("Finished Loading")
