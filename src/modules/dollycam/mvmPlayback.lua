@@ -184,13 +184,21 @@ function m.stopPreview()
     Camera.FieldOfView = returnFOV
     m.previewing = false
 end
+
+function m.setCFRoll(cf, r)
+    local pitch, yaw, _ = cf:ToEulerAnglesYXZ()
+	cf = CFrame.fromEulerAnglesYXZ(pitch, yaw, r) + cf.Position
+    return cf
+end
+
 game:GetService("RunService").Heartbeat:Connect(function(step)
     if not points or not m.previewing then return end
     local scaledTime = previewTime * timescale
-    local previewlocation = pathInterp(points, scaledTime, k[interpMethod])
-    if not previewlocation[1] then
-        Camera.FieldOfView = previewlocation[3]
-        Camera.CFrame = previewlocation[2] * CFrame.Angles(0,0,math.rad(previewlocation[4]))
+    local previewLocation = pathInterp(points, scaledTime, k[interpMethod])
+    if not previewLocation[1] then
+        Camera.CameraType = Enum.CameraType.Custom
+        Camera.FieldOfView = previewLocation[3]
+        Camera.CFrame = m.setCFRoll(previewLocation[2], math.rad(previewLocation[4]))
     else
         m.stopPreview()
     end
