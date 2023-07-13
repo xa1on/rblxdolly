@@ -147,14 +147,14 @@ function m.checkDir(createpath)
         end
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
-        m.dropdown:SetValue(m.currentPathValue)
+        if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
     elseif #m.pathsDir:GetChildren() > 0 then
         m.reloadDropdown()
         m.currentDir = m.pathsDir:GetChildren()[1]
-        m.dropdown:SetValue(m.currentDir.Name)
+        if m.dropdown then m.dropdown:SetValue(m.currentDir.Name) end
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
-        m.dropdown:SetValue(m.currentPathValue)
+        if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
     end
 end
 
@@ -284,6 +284,7 @@ end
 
 function m.createDirection(cf, parent, name, type)
     local newPoint = Instance.new("Part", parent)
+    newPoint:SetAttribute("Directional", true)
     newPoint.Name = name
     newPoint.CFrame = cf:ToWorldSpace(CFrame.new(0,0,-0.25))
     newPoint.Color = m.pointProperties[type].dircolor
@@ -442,6 +443,18 @@ function m.renderPath()
     return
 end
 
+function m.hideRender(show)
+    if show == nil then show = false end
+    m.checkDir()
+    for _,v in pairs(m.renderDir:GetDescendants()) do
+        if v:IsA("BasePart") and v:GetAttribute("Directional") == true then
+            if show then v.Transparency = 0 else v.Transparency = 1 end
+        elseif v:IsA("BillboardGui") then
+            v.Enabled = show
+        end
+    end
+end
+
 function m.createPoint()
     m.checkDir(true)
     if not util.notnill(m.pointDir) then return end
@@ -474,7 +487,7 @@ function m.runPath()
     if m.playing then return end
     --.autoreorder:SetDisabled(true)
     m.checkDir()
-    m.renderDir:ClearAllChildren()
+    m.hideRender()
     previewTime = 0
     local Camera = workspace.CurrentCamera
     m.returnCFrame = Camera.CFrame
@@ -491,7 +504,7 @@ function m.stopPreview()
     Camera.CFrame = m.returnCFrame
     Camera.FieldOfView = m.returnFOV
     tscale.resetTimescale()
-    m.renderPath()
+    m.hideRender(true)
 end
 
 function m.saveCam()
@@ -549,210 +562,19 @@ end
 
 function m.createPlaybackScript()
     if workspace:FindFirstChild(m.scriptName) then workspace[m.scriptName]:Destroy() end
-    local newScript = Instance.new("ModuleScript", workspace)
-    newScript.Name = m.scriptName
-    newScript.Source = [[local defaultTiming = 2.5
-    local startctrlName = "1"
-    local endctrlName = "2"
-    local function CFrameDist(cf1, cf2)
-        return math.abs((cf1.Position - cf2.Position).Magnitude)
-    end
-    -- Credit to @Fractality_alt on rblx devforums for the hermite and catmull rom coefficent functions
-    -- hermite coefficents
-    local function hermiteCoefficents(p0, p1, m0, m1)
-        return p0, m0, 3*(p1 - p0) - 2*m0 - m1, 2*(p1 - p0) - m0 - m1
-    end
-    -- catmull rom coefficents
-    local function CRCoefficents(p0, p1, p2, p3, r)
-        r = r or 0.5
-        return
-            2*p1*r,
-            (p2 - p0)*r,
-            (2*p0 - 5*p1 + 4*p2 - p3)*r,
-            (3*(p1 - p2) + (p3 - p0))*r
-    end
-    local function cubic(t, a, b, c, d)
-        return a + t*(b + t*(c + t*d))
-    end
-    local function lerp(p1, p2, t)
-        return p1 + (p2 - p1) * t
-    end
-    local function cosine(p1, p2, t)
-        p2 = p2 or p1
-        local f = (1 - math.cos(t * math.pi)) * 0.5
-        return p1 * (1 - f) + p2 * f
-    end
-    local function linearInterp(path, t)
-        local p1 = path[1]
-        local p2 = path[2] or p1
-        return lerp(p1, p2, t)
-    end
-    local function cosineInterp(path, t)
-        local p1 = path[1]
-        local p2 = path[2] or p1
-        return cosine(p1, p2, t)
-    end
-    local function catmullRomInterp(path, t)
-        local p0 = path[0] or path[1]
-        local p1 = path[1]
-        local p2 = path[2] or p1
-        local p3 = path[3] or p2
-        local a,b,c,d = CRCoefficents(p0, p1, p2, p3)
-        return cubic(t, a, b, c, d)
-    end
-    local cubicInterp = catmullRomInterp
-    local function fourpCubicInterp(path, t, control)
-        if not control then return catmullRomInterp(path, t) end
-        local p1 = path[1]
-        local p2 = path[2]
-        local c1 = control[1][2]
-        local c2 = control[2][1]
-        local l1 = lerp(p1, c1, t)
-        local l2 = lerp(c1, c2, t)
-        local l3 = lerp(c2, p2, t)
-        local a = lerp(l1, l2, t)
-        local b = lerp(l2, l3, t)
-        return lerp(a, b, t)
-    end
-    local bezierInterp = fourpCubicInterp
-    local function interpolateCF(path, t, func, control)
-        if not func then func = linearInterp end
-        local pv = {}
-        local lv = {}
-        for i, v in pairs(path) do
-            pv[i] = v.Position
-            lv[i] = v.LookVector
-        end
-        local cpv = {}
-        local clv = {}
-        for i, v in pairs(control) do
-            cpv[i] = {}
-            clv[i] = {}
-            if v[1] then
-                cpv[i][1] = v[1].Position
-                clv[i][1] = v[1].LookVector
-            end
-            if v[2] then
-                cpv[i][2] = v[2].Position
-                clv[i][2] = v[2].LookVector
-            end
-        end
-        local newpv = func(pv, t, cpv)
-        local newlv = func(lv, t, clv)
-        return CFrame.new(newpv, newpv + newlv)
-    end
-    local function segmentInterp(points, t, func)
-        points[0] = points[0] or points[1]
-        points[2] = points[2] or points[1]
-        points[3] = points[3] or points[2]
-        local cframelist = {}
-        local fovlist = {}
-        local rolllist = {}
-        local ctrllist = {}
-        for i = 0,3,1 do
-            if points[i] then
-                cframelist[i] = points[i].CFrame
-                fovlist[i] = points[i].FOV.Value
-                rolllist[i] = points[i].Roll.Value
-                ctrllist[i] = {}
-                local startCtrl = points[i]:FindFirstChild(startctrlName)
-                if startCtrl then ctrllist[i][1] = startCtrl.CFrame end
-                local endCtrl = points[i]:FindFirstChild(endctrlName)
-                if endCtrl then ctrllist[i][2] = endCtrl.CFrame end
-            end
-        end
-        local dist = points[2].TweenTime.Value
-        local progression = t/dist
-        if progression >= 1 then
-            return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value, dist}
-        else
-            return {false,
-                interpolateCF(cframelist, progression, func, ctrllist),
-                func(fovlist, progression),
-                func(rolllist, progression),
-                0}
-        end
-    end
-    local function pathInterp(points, t, func)
-        if #points <= 0 then
-            return {true, CFrame.new(), 60, 0}
-        end
-        local current_t = t
-        for index, _ in pairs(points) do
-            local next = points[index+1]
-            if next then
-                local pointlist = {}
-                for i = -1,2,1 do
-                    if points[index+i] then
-                        pointlist[i+1] = points[index+i]
-                    end
-                end
-                local segInterp = segmentInterp(pointlist, current_t, func)
-                local dist = segInterp[5]
-                if segInterp[1] then
-                    current_t = current_t - dist
-                else
-                    return segInterp
-                end
-            end
-        end
-        local lastPoint = points[#points]
-        return {true, lastPoint.CFrame, lastPoint.FOV.Value, lastPoint.Roll.Value}
-    end
-    local m = {}
-    local points = false
-    local renderfolder = false
-    if workspace:FindFirstChild("]] .. m.mvmDirName .. [[") then
-        if workspace.]] .. m.mvmDirName .. [[:FindFirstChild("]] .. m.pathsDirName .. [[") and #workspace.]] .. m.mvmDirName .. [[.]] .. m.pathsDirName .. [[:GetChildren()>0 and workspace.]] .. m.mvmDirName .. [[.]] .. m.pathsDirName .. [[:GetChildren()[1]:FindFirstChild("]] .. m.pointDirName .. [[") then
-            points = workspace.]] .. m.mvmDirName .. [[.]] .. m.pathsDirName .. [[:GetChildren()[1].]] .. m.pointDirName .. [[:GetChildren()
-        end
-        if workspace.]] .. m.mvmDirName .. [[:FindFirstChild("]] .. m.renderDirName .. [[") then
-            renderfolder = workspace.]] .. m.mvmDirName .. [[.]] .. m.renderDirName .. [[
-            renderfolder.Parent = game:GetService("ServerStorage")
-        end
-    end
-    local previewTime = 0
-    local Camera = workspace.CurrentCamera
-    local returnCFrame = Camera.CFrame
-    local returnFOV = Camera.FieldOfView
-    local timescale = 1
-    m.previewing = false
-    function m.startPreview(ts)
-        timescale = ts
-        previewTime = 0
-        Camera = workspace.CurrentCamera
-        returnCFrame = Camera.CFrame
-        returnFOV = Camera.FieldOfView
-        --Camera.CameraType = Enum.CameraType.Scriptable
-        m.previewing = true
-    end
-    function m.stopPreview()
-        Camera = workspace.CurrentCamera
-        Camera.CameraType = Enum.CameraType.Custom
-        Camera.CFrame = returnCFrame
-        Camera.FieldOfView = returnFOV
-        m.previewing = false
-        if renderfolder then renderfolder.Parent = workspace.]] .. m.mvmDirName .. [[ end
-    end
-    game:GetService("RunService").Heartbeat:Connect(function(step)
-        if not points or not m.previewing then return end
-        local scaledTime = previewTime * timescale
-        local previewlocation = pathInterp(points, scaledTime, ]] .. m.interpMethod .. [[)
-        if not previewlocation[1] then
-            Camera.FieldOfView = previewlocation[3]
-            Camera.CFrame = previewLocation[2] * CFrame.Angles(0,0,math.rad(previewLocation[4]))
-        else
-            m.stopPreview()
-        end
-        previewTime = previewTime + step
-    end)
-    return m]]
+    local newScript = script.Parent.mvmPlayback:Clone()
+    newScript.Parent = workspace
+    m.checkDir()
+    local playbackpoints = m.pointDir:Clone()
+    playbackpoints.Parent = newScript
     local runscript = Instance.new("Script", newScript)
     runscript.Name = "Run"
-    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ")"
+    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ", \"" .. m.interpMethod .. "\")"
 end
 
+function m.export3D()
 
+end
 
 tscale.resetTimescale()
 local RunService = game:GetService("RunService")

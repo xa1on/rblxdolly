@@ -13,7 +13,11 @@ local RunService = game:GetService("RunService")
     widget layout:
 ]]--
 
-if game:GetService("RunService"):IsRunning() then return end
+if game:GetService("RunService"):IsRunning() then
+    local dep = require(script.Parent.dependencies)
+    dep.dollycam.hideRender()
+    return
+end
 
 print("\n" ..
 "       ____________ _     __   _____  ____   ____  ___\n" ..
@@ -24,6 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
+local HttpService = game:GetService("HttpService")
 
 local moduledir = script.Parent.modules
 local gui = require(moduledir.rblxgui.initialize)(plugin, "rblxdolly")
@@ -31,8 +36,7 @@ local gui = require(moduledir.rblxgui.initialize)(plugin, "rblxdolly")
 -- toolbar
 local toolbar = plugin:CreateToolbar("rblxdolly")
 
-local widget = gui.PluginWidget.new({ID = "rblxdolly", Enabled = true, DockState = Enum.InitialDockState.Left, Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(game:GetService("StudioService"):GetUserId())})
-gui.ViewButton.new()
+local widget = gui.PluginWidget.new({ID = "rblxdolly", Enabled = false, DockState = Enum.InitialDockState.Left, Title = "RBLXDOLLY - " .. game:GetService("Players"):GetNameFromUserIdAsync(game:GetService("StudioService"):GetUserId())})
 
 local b_toggle = toolbar:CreateButton("Toggle","Toggle widget","")
 b_toggle.Click:Connect(function() widget.Content.Enabled = not widget.Content.Enabled end)
@@ -42,6 +46,18 @@ local mainpage = gui.Page.new({
     TitlebarMenu = widget.TitlebarMenu,
     Open = true
 })
+
+local filemenu = plugin:CreatePluginMenu(HttpService:GenerateGUID(false), "File Menu")
+filemenu.Name = "File Menu"
+local scriptExportAction = filemenu:AddNewAction("ScriptExport", "Export as Script")
+local cam3DExportAction = filemenu:AddNewAction("3DExport", "Export as After Effects 3D Camera")
+
+local filemenubutton = gui.TitlebarButton.new({
+    Name = "FILE",
+    PluginMenu = filemenu
+})
+
+gui.ViewButton.new()
 
 local mainpageframe = gui.ScrollingFrame.new(nil, mainpage.Content)
 mainpageframe:SetMain()
@@ -63,8 +79,6 @@ gui.Textbox.new({
 gui.ListFrame.new({Height = 15})
 
 local createpoint = gui.Button.new({Text = "Create Point", ButtonSize = 0.5})
-
-local createscript = gui.Button.new({Text = "Create Playback Script", ButtonSize = 0.6})
 
 gui.ListFrame.new({Height = 15})
 
@@ -162,6 +176,20 @@ createKeybind("Toggle Widget", function() widget.Content.Enabled = not widget.Co
 
 local dep = require(script.Parent.dependencies)
 
+local function exportScript()
+    dep.dollycam.createPlaybackScript()
+    dep.HistoryService:SetWaypoint("Exported as Script")
+end
+createKeybind("Export Playback Script", exportScript)
+
+local function exportAs3D()
+
+end
+createKeybind("Export AE 3D Camera", exportAs3D)
+
+dep.util.appendConnection(scriptExportAction.Triggered:Connect(exportScript))
+dep.util.appendConnection(cam3DExportAction.Triggered:Connect(exportAs3D))
+
 local function createPoint()
     if not dep.dollycam.playing then
         dep.dollycam.createPoint()
@@ -170,13 +198,6 @@ local function createPoint()
 end
 createpoint:Clicked(createPoint)
 createKeybind("Create Point", createPoint, {{"P"}})
-
-local function createScript()
-    dep.dollycam.createPlaybackScript()
-    dep.HistoryService:SetWaypoint("Created Script")
-end
-createscript:Clicked(createScript)
-createKeybind("Create Playback Script", createScript)
 
 local function runPath()
     if not dep.dollycam.playing then dep.dollycam.runPath()
@@ -335,6 +356,7 @@ lockcontrolpointscheckbox:Clicked(function(newvalue)
 end)
 
 dep.dollycam.initialize()
+dep.dollycam.hideRender(true)
 
 --[["autoreorder":SetValueChangedFunction(function(newvalue)
     if not dep.dollycam.playing then

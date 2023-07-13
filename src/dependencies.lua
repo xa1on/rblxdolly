@@ -6,6 +6,7 @@ m.Selection = game:GetService("Selection")
 m.RepStorage = game:GetService("ReplicatedFirst")
 m.CoreGui = game:GetService("CoreGui")
 m.RunService = game:GetService("RunService")
+m.HttpService = game:GetService("HttpService")
 
 
 m.moduledir = script.Parent.modules
