@@ -131,6 +131,20 @@ local function tablechange()
     m.reloadDropdown()
 end
 
+function m.pathChange(newpath)
+    if m.currentPathValue == newpath then return end
+    m.currentPathValue = newpath
+    if not workspace:FindFirstChild(m.mvmDirName) then return end
+    local newpathdir = m.unloadedPathsDir:FindFirstChild(newpath)
+    if newpathdir then
+        m.unloadPaths()
+        m.loadPath(newpathdir)
+        m.checkDir()
+        m.renderPath()
+        HistoryService:SetWaypoint("Switched paths")
+    end
+end
+
 function m.checkDir(createpath)
     m.unloadedMvmDir = util.createIfNotExist(repStorage, "Folder", m.mvmDirName)
     m.unloadedPathsDir = util.createIfNotExist(m.unloadedMvmDir, "Folder", m.pathsDirName)
@@ -148,6 +162,7 @@ function m.checkDir(createpath)
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
         if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
+        return true
     elseif #m.pathsDir:GetChildren() > 0 then
         m.reloadDropdown()
         m.currentDir = m.pathsDir:GetChildren()[1]
@@ -155,7 +170,9 @@ function m.checkDir(createpath)
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
         if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
+        return true
     end
+    return false
 end
 
 function m.renamePoints()
@@ -230,7 +247,7 @@ function m.alignCtrl(ctrl)
 end
 
 function m.reconnectPoints()
-    m.checkDir()
+    if not m.checkDir() then return end
     util.appendConnection(m.pathsDir.AncestryChanged:Connect(tablechange))
     for _, i in pairs(m.pathsDir:GetDescendants()) do
         if i:IsA("BasePart") then util.appendConnection(i.Changed:Connect(function(property) pointChange(property, i) end)) end
@@ -434,7 +451,9 @@ end
 
 function m.renderPath()
     if m.playing or m.ignorechange then return end
-    if not util.notnill(m.pointDir) then m.checkDir() end
+    if not util.notnill(m.pointDir) then
+        if not m.checkDir() then return end
+    end
     if m.renderDir then m.renderDir:ClearAllChildren() end
     local points = m.grabPoints()
     for _, point in pairs(points) do
@@ -445,6 +464,7 @@ end
 
 function m.hideRender(show)
     if show == nil then show = false end
+    if not workspace:FindFirstChild(m.mvmDirName) then return end
     m.checkDir()
     for _,v in pairs(m.renderDir:GetDescendants()) do
         if v:IsA("BasePart") and v:GetAttribute("Directional") == true then

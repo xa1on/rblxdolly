@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5"
+local version = "0.5.1"
 local newestversion
 local outofdate = false
 
@@ -357,18 +357,7 @@ tweentimeinput:Changed(function(newtween)
 end)
 dep.dollycam.latesttweentime = tweentimeinput.Value
 
-pathinput:Changed(function(newpath)
-    if dep.dollycam.currentPathValue == newpath then return end
-    dep.dollycam.currentPathValue = newpath
-    local newpathdir = dep.dollycam.unloadedPathsDir:FindFirstChild(newpath)
-    if newpathdir then
-        dep.dollycam.unloadPaths()
-        dep.dollycam.loadPath(newpathdir)
-        dep.dollycam.checkDir()
-        dep.dollycam.renderPath()
-        dep.HistoryService:SetWaypoint("Switched paths")
-    end
-end)
+pathinput:Changed(dep.dollycam.pathChange)
 pathinput:DropdownToggled(function()
     dep.dollycam.reloadDropdown()
 end)
