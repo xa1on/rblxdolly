@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.1"
+local version = "0.5.2"
 local newestversion
 local outofdate = false
 
@@ -174,9 +174,9 @@ gui.Labeled.new({Text = "Match Camera Keyframes", LabelSize = UDim.new(0.35,0), 
 
 if not _G.MoonGlobal then
     lsyncMASTLgui:SetDisabled(true)
-    lsyncMASTLgui:SetValue(false)
+    syncmoontimeline:SetValue(false)
     lscaletoMASTLlength:SetDisabled(true)
-    lscaletoMASTLlength:SetValue(false)
+    scaletoMASTLlength:SetValue(false)
     scaleMASpathtotl:SetDisabled(true)
 end
 
