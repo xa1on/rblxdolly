@@ -5,6 +5,18 @@ m.connections = {}
 
 m.detectionlist = {}
 
+function m.tableexist(start, args)
+    local table = start
+    for _,v in pairs(args) do
+        if table ~= nil then
+            table = table[v]
+        else
+            return nil
+        end
+    end
+    return table
+end
+
 function m.mvmprint(t)
     print("[" .. t .. " - RBLXDOLLY]")
 end

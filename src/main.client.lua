@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.2"
+local version = "0.5.3"
 local newestversion
 local outofdate = false
 

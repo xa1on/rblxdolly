@@ -604,10 +604,10 @@ local MASLS
 local previouskf = 0
 local previoustllength = 0
 local previousfps = 0
-if moon then MASLS = moon.Windows.MoonAnimator.g_e.LayerSystem end
+MASLS = util.tableexist(moon,{"Windows","MoonAnimator","g_e","LayerSystem"})
 
 function m.scaleTL()
-    if m.playing or (not moon) or (not MASLS) then return end
+    if m.playing or (not MASLS) then return end
     local tllength = MASLS.length
     local fps = moon.current_fps
     local newts = m.getLength()/(tllength/fps)
@@ -616,7 +616,7 @@ function m.scaleTL()
 end
 
 function m.scaleTLTween()
-    if m.playing or (not moon) or (not MASLS) then return end
+    if m.playing or (not MASLS) then return end
     local points = m.grabPoints()
     local tllength = MASLS.length
     local fps = moon.current_fps
@@ -629,7 +629,7 @@ end
 
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
     m.preview(step)
-    if m.playing or (not moon) or (not MASLS) then return end
+    if m.playing or (not MASLS) then return end
     local framenum = moon.time_offset + MASLS.SliderFrame
     local tllength = MASLS.length
     local fps = moon.current_fps
