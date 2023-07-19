@@ -1,29 +1,12 @@
-local defaultTiming = 2.5
 local startctrlName = "1"
 local endctrlName = "2"
 local interpMethod = "bezierInterp"
+local tension = 0.5
+local alpha = 0.5
 
 local k = {}
-
 local function CFrameDist(cf1, cf2)
     return math.abs((cf1.Position - cf2.Position).Magnitude)
-end
--- Credit to @Fractality_alt on rblx devforums for the hermite and catmull rom coefficent functions
--- hermite coefficents
-local function hermiteCoefficents(p0, p1, m0, m1)
-    return p0, m0, 3*(p1 - p0) - 2*m0 - m1, 2*(p1 - p0) - m0 - m1
-end
--- catmull rom coefficents
-local function CRCoefficents(p0, p1, p2, p3, r)
-    r = r or 0.5
-    return
-        2*p1*r,
-        (p2 - p0)*r,
-        (2*p0 - 5*p1 + 4*p2 - p3)*r,
-        (3*(p1 - p2) + (p3 - p0))*r
-end
-local function cubic(t, a, b, c, d)
-    return a + t*(b + t*(c + t*d))
 end
 local function lerp(p1, p2, t)
     return p1 + (p2 - p1) * t
@@ -44,13 +27,33 @@ local function cosineInterp(path, t)
     local p2 = path[2] or p1
     return cosine(p1, p2, t)
 end
+local function cubic(t, a, b, c, d)
+    return a + t*(b + t*(c + t*d))
+end
+k.cosineInterp = cosineInterp
 local function catmullRomInterp(path, t)
     local p0 = path[0] or path[1]
     local p1 = path[1]
     local p2 = path[2] or p1
     local p3 = path[3] or p2
-    local a,b,c,d = CRCoefficents(p0, p1, p2, p3)
-    return cubic(t, a, b, c, d)
+    local function tj(pi, pf)
+        if pi == pf then return 1 end
+        if type(pi) == "number" then
+            return pi-pf
+        elseif type(pi) == "vector" then
+            return (pi-pf).Magnitude
+        else
+            return CFrameDist(pi,pf)^2
+        end
+    end
+    local t0 = 0;
+    local t1 = t0 + tj(p0,p1)^alpha;
+    local t2 = t1 + tj(p1,p2)^alpha;
+    local t3 = t2 + tj(p2,p3)^alpha;
+    local m1 = (1.0 - tension) * (t2 - t1) * ((p1 - p0) / (t1 - t0) - (p2 - p0) / (t2 - t0) + (p2 - p1) / (t2 - t1));
+    local m2 = (1.0 - tension) * (t2 - t1) * ((p2 - p1) / (t2 - t1) - (p3 - p1) / (t3 - t1) + (p3 - p2) / (t3 - t2));
+
+    return cubic(t, p1, m1, -3*(p1 - p2) - m1 - m1 - m2, 2*(p1 - p2) + m1 + m2)
 end
 k.cubicInterp = catmullRomInterp
 local function fourpCubicInterp(path, t, control)
@@ -161,7 +164,9 @@ local returnFOV = Camera.FieldOfView
 local timescale = 1
 m.previewing = false
 
-function m.startPreview(ts, interp)
+function m.startPreview(ts, interp, tension, alpha)
+    tension = tension
+    alpha = alpha
     local pointdir = script:FindFirstChildWhichIsA("Folder")
     local sort = {}
     for _, i in pairs(pointdir:GetChildren()) do

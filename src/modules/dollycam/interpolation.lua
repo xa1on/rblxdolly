@@ -4,25 +4,26 @@ local util = require(script.Parent.Parent.util)
 
 m.startctrlName = "1"
 m.endctrlName = "2"
+m.tension = 0.5
+m.alpha = 0.5
 
 function m.CFrameDist(cf1, cf2)
     return math.abs((cf1.Position - cf2.Position).Magnitude)
 end
 
--- Credit to @Fractality_alt on rblx devforums for the hermite and catmull rom coefficent functions
 -- hermite coefficents
 function m.hermiteCoefficents(p0, p1, m0, m1)
 	return p0, m0, 3*(p1 - p0) - 2*m0 - m1, 2*(p1 - p0) - m0 - m1
 end
 
 -- catmull rom coefficents
-function m.CRCoefficents(p0, p1, p2, p3, r)
-    r = r or 0.5
+function m.CRCoefficents(p0, p1, p2, p3, t)
+    t = t or m.tension
 	return
-		2*p1*r,
-		(p2 - p0)*r,
-		(2*p0 - 5*p1 + 4*p2 - p3)*r,
-		(3*(p1 - p2) + (p3 - p0))*r
+	    p1,
+		-t*p0 + t*p2,
+		2*t*p0 + (t-3)*p1 + (3-2*t)*p2 - t*p3,
+		-t*p0 + (2-t)*p1 + (t-2)*p2 + t*p3
 end
 
 function m.cubic(t, a, b, c, d)
@@ -35,8 +36,8 @@ end
 
 function m.cosine(p1, p2, t)
     p2 = p2 or p1
-    local f = (1 - math.cos(t * math.pi)) * 0.5
-	return p1 * (1 - f) + p2 * f
+    local f = (1 - math.cos(t * math.pi)) / 2
+	return m.lerp(p1,p2,f)
 end
 
 function m.linearInterp(path, t)
@@ -51,13 +52,33 @@ function m.cosineInterp(path, t)
     return m.cosine(p1, p2, t)
 end
 
-function m.catmullRomInterp(path, t)
+function m.catmullRomInterp(path, t, _, tension, alpha)
+    tension = tension or m.tension
+    alpha = alpha or m.alpha
     local p0 = path[0] or path[1]
     local p1 = path[1]
     local p2 = path[2] or p1
     local p3 = path[3] or p2
-    local a,b,c,d = m.CRCoefficents(p0, p1, p2, p3)
-    return m.cubic(t, a, b, c, d)
+    local function tj(pi, pf)
+        if pi == pf then return 1 end
+        if type(pi) == "number" then
+            return pi-pf
+        elseif type(pi) == "vector" then
+            return (pi-pf).Magnitude
+        else
+            return m.CFrameDist(pi,pf)^2
+        end
+    end
+    local t0 = 0;
+    local t1 = t0 + tj(p0,p1)^alpha;
+    local t2 = t1 + tj(p1,p2)^alpha;
+    local t3 = t2 + tj(p2,p3)^alpha;
+    local m1 = (1.0 - tension) * (t2 - t1) * ((p1 - p0) / (t1 - t0) - (p2 - p0) / (t2 - t0) + (p2 - p1) / (t2 - t1));
+    local m2 = (1.0 - tension) * (t2 - t1) * ((p2 - p1) / (t2 - t1) - (p3 - p1) / (t3 - t1) + (p3 - p2) / (t3 - t2));
+
+    return m.cubic(t, p1, m1, -3*(p1 - p2) - m1 - m1 - m2, 2*(p1 - p2) + m1 + m2)
+    --local a,b,c,d = m.CRCoefficents(p0, p1, p2, p3)
+    --return m.cubic(t, a, b, c, d)
 end
 m.cubicInterp = m.catmullRomInterp
 

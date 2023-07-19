@@ -589,7 +589,7 @@ function m.createPlaybackScript()
     playbackpoints.Parent = newScript
     local runscript = Instance.new("Script", newScript)
     runscript.Name = "Run"
-    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ", \"" .. m.interpMethod .. "\")"
+    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ", \"" .. m.interpMethod .. "\", " .. interp.tension .. ", " .. interp.alpha .. ")"
 end
 
 function m.export3D()

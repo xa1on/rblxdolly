@@ -116,6 +116,19 @@ gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = in
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
 local timescalelabel = gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput})
 
+local cubicoptions = gui.Section.new({Text = "Cubic Interpolation Options", Open = false})
+cubicoptions:SetMain()
+
+local tensioninput = gui.InputField.new({Placeholder = "Tension Value", NoDropdown = true, Value = 0.5})
+local tensionslider = gui.Slider.new({Min = 0, Max = 1, Increment = 0.01, Value = 0.5})
+local tensionlabel = gui.Labeled.new({Text = "Cubic Tension", LabelSize = UDim.new(0,85), Disabled = true, Objects = {{Object = tensioninput, Name = "input", Size = UDim.new(0.3,0)}, {Object = tensionslider, Name = "slider"}}})
+
+local alphainput = gui.InputField.new({Placeholder = "Alpha Value", NoDropdown = true, Value = 0.5})
+local alphaslider = gui.Slider.new({Min = 0, Max = 1, Increment = 0.01, Value = 0.5})
+local alphalabel = gui.Labeled.new({Text = "Cubic Alpha", LabelSize = UDim.new(0,85), Disabled = true, Objects = {{Object = alphainput, Name = "input", Size = UDim.new(0.3,0)}, {Object = alphaslider, Name = "slider"}}})
+
+pathoptions:SetMain()
+
 local scrubpathslider = gui.Slider.new({Min = 0, Max = 1})
 gui.Labeled.new({Text = "Scrub Path", LabelSize = UDim.new(0, 85), Object = scrubpathslider})
 
@@ -137,7 +150,7 @@ local tweentimeinput = gui.InputField.new({Placeholder = "Transition Time Value"
 gui.Labeled.new({Text = "Transition Time", LabelSize = UDim.new(0,85), Object = tweentimeinput})
 
 local fovinput = gui.InputField.new({Placeholder = "FOV Value", Value = math.round(workspace.CurrentCamera.FieldOfView), NoDropdown = true})
-local fovslider = gui.Slider.new({Min = 0, Max = 120, Increment = 1})
+local fovslider = gui.Slider.new({Min = 0, Max = 120, Increment = 1, Value = math.round(workspace.CurrentCamera.FieldOfView)})
 gui.Labeled.new({Text = "FOV", LabelSize = UDim.new(0,85), Objects = {{Object = fovinput, Name = "input", Size = UDim.new(0.3,0)}, {Object = fovslider, Name = "slider"}}})
 
 local rollinput = gui.InputField.new({Placeholder = "Roll Value", Value = 0, NoDropdown = true})
@@ -273,6 +286,36 @@ end
 scaleMASpathtotl:Clicked(scaleMASpath)
 createKeybind("Moon Timeline Scale", scaleMASpath)
 
+tensioninput:Changed(function(newtension)
+    if dep.interp.tension == newtension then return end
+    if not tonumber(newtension) then return end
+    dep.interp.tension = newtension
+    dep.dollycam.renderPath()
+    if tensionslider.Value ~= newtension then tensionslider:SetValue(newtension) end
+end)
+
+tensionslider:Changed(function(newtension)
+    if dep.interp.tension == newtension then return end
+    dep.interp.tension = newtension
+    dep.dollycam.renderPath()
+    if tensioninput.Value ~= newtension then tensioninput:SetValue(newtension) end
+end)
+
+alphainput:Changed(function(newalpha)
+    if dep.interp.alpha == newalpha then return end
+    if not tonumber(newalpha) then return end
+    dep.interp.alpha = newalpha
+    dep.dollycam.renderPath()
+    if alphaslider.Value ~= newalpha then alphaslider:SetValue(newalpha) end
+end)
+
+alphaslider:Changed(function(newalpha)
+    if dep.interp.alpha == newalpha then return end
+    dep.interp.alpha = newalpha
+    dep.dollycam.renderPath()
+    if alphainput.Value ~= newalpha then alphainput:SetValue(newalpha) end
+end)
+
 timescaleinput:Changed(function(newts)
     if tonumber(newts) then
         dep.timescale.timescale = newts
@@ -365,6 +408,13 @@ dep.dollycam.dropdown = pathinput
 
 interpolationinput:Changed(function(newinterp)
     dep.dollycam.interpMethod = newinterp
+    if newinterp == "cubicInterp" then
+        tensionlabel:SetDisabled(false)
+        alphalabel:SetDisabled(false)
+    else
+        alphalabel:SetDisabled(true)
+        tensionlabel:SetDisabled(true)
+    end
     dep.dollycam.renderPath()
     dep.HistoryService:SetWaypoint("Changed interpolation methods")
 end)
