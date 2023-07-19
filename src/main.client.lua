@@ -119,12 +119,12 @@ local timescalelabel = gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new
 local cubicoptions = gui.Section.new({Text = "Cubic Interpolation Options", Open = false})
 cubicoptions:SetMain()
 
-local tensioninput = gui.InputField.new({Placeholder = "Tension Value", NoDropdown = true, Value = 0.5})
-local tensionslider = gui.Slider.new({Min = 0, Max = 1, Increment = 0.01, Value = 0.5})
+local tensioninput = gui.InputField.new({Placeholder = "Tension Value", NoDropdown = true, Value = 0})
+local tensionslider = gui.Slider.new({Min = -3, Max = 1, Increment = 0.01, Value = 0})
 local tensionlabel = gui.Labeled.new({Text = "Cubic Tension", LabelSize = UDim.new(0,85), Disabled = true, Objects = {{Object = tensioninput, Name = "input", Size = UDim.new(0.3,0)}, {Object = tensionslider, Name = "slider"}}})
 
-local alphainput = gui.InputField.new({Placeholder = "Alpha Value", NoDropdown = true, Value = 0.5})
-local alphaslider = gui.Slider.new({Min = 0, Max = 1, Increment = 0.01, Value = 0.5})
+local alphainput = gui.InputField.new({Placeholder = "Alpha Value", NoDropdown = true, Value = 0})
+local alphaslider = gui.Slider.new({Min = 0, Max = 1, Increment = 0.01, Value = 0})
 local alphalabel = gui.Labeled.new({Text = "Cubic Alpha", LabelSize = UDim.new(0,85), Disabled = true, Objects = {{Object = alphainput, Name = "input", Size = UDim.new(0.3,0)}, {Object = alphaslider, Name = "slider"}}})
 
 pathoptions:SetMain()
@@ -171,7 +171,7 @@ local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, setti
 dollycamsettings:SetMain()
 
 local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
-gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0, 85), Object = lockcontrolpointscheckbox})
+gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0.35, 0), Object = lockcontrolpointscheckbox})
 
 local MASsettings = gui.Section.new({Text = "Moon Animator", Open = true}, settingsframe.Content)
 MASsettings:SetMain()

@@ -4,8 +4,8 @@ local util = require(script.Parent.Parent.util)
 
 m.startctrlName = "1"
 m.endctrlName = "2"
-m.tension = 0.5
-m.alpha = 0.5
+m.tension = 0
+m.alpha = 0
 
 function m.CFrameDist(cf1, cf2)
     return math.abs((cf1.Position - cf2.Position).Magnitude)
