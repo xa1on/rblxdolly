@@ -24,6 +24,8 @@ m.playing = false
 m.syncMAStl = true
 m.scaleMAStl = false
 m.matchMASkf = false
+m.framebased = false
+m.framebasedfps = 60
 
 m.latesttweentime = nil
 m.interpMethod = nil
@@ -565,6 +567,7 @@ end
 
 function m.preview(step)
     if not m.playing then return end
+    if m.framebased then step = 1/m.framebasedfps end
     if setRoll.roll_active then setRoll.toggleRollGui() end
     local scaledTime = previewTime * tscale.timescale
     if m.goToTime(scaledTime) then
@@ -653,7 +656,9 @@ function m.initialize()
         m.checkDir()
         m.renderPath()
         m.reconnectPoints()
+        return true
     end
+    return false
 end
 
 

@@ -49,6 +49,26 @@ local HttpService = game:GetService("HttpService")
 local moduledir = script.Parent.modules
 local gui = require(moduledir.rblxgui.initialize)(plugin, "RBLXDOLLY")
 
+local settingobjs = {}
+local savedsettings = plugin:GetSetting("rblxdolly saved settings") or {}
+local function restoreSettings()
+    for i, v in pairs(savedsettings) do
+        if settingobjs[i] ~= nil then settingobjs[i]:SetValue(v) end
+    end
+end
+
+local function saveSettings()
+    savedsettings = {}
+    for i, v in pairs(settingobjs) do
+        if v.Input ~= nil then
+            savedsettings[i] = {Name = v.Input.Text, Value = v.Value}
+        else
+            savedsettings[i] = v.Value
+        end
+    end
+    plugin:SetSetting("rblxdolly saved settings", savedsettings)
+end
+
 -- toolbar
 local toolbarname = "RBLXDOLLY - v" .. version
 if outofdate then toolbarname = "RBLXDOLLY - Update available" end
@@ -110,7 +130,8 @@ gui.Labeled.new({Text = "Path", LabelSize = UDim.new(0,85), Object = pathinput})
 
 gui.ListFrame.new({Height = 5})
 
-local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Manual Curve", Value = "bezierInterp"}, Items = {{Name = "Manual Curve", Value = "bezierInterp"}, {Name = "Linear", Value = "linearInterp"}, {Name = "Cubic Curve", Value = "cubicInterp"}}, DisableEditing = true})
+local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Cubic Curve", Value = "cubicInterp"}, Items = {{Name = "Manual Curve", Value = "bezierInterp"}, {Name = "Linear", Value = "linearInterp"}, {Name = "Cubic Curve", Value = "cubicInterp"}}, DisableEditing = true})
+settingobjs.interpolationinput = interpolationinput
 gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = interpolationinput})
 
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
@@ -165,30 +186,25 @@ local settingspage = gui.Page.new({
     TitlebarMenu = widget.TitlebarMenu
 })
 
-local settingobjs = {}
-local savedsettings = plugin:GetSetting("rblxdolly saved settings") or {}
-local function restoreSettings()
-    for i, v in pairs(savedsettings) do
-        if settingobjs[i] ~= nil then settingobjs[i]:SetValue(v) end
-    end
-end
-
-local function saveSettings()
-    savedsettings = {}
-    for i, v in pairs(settingobjs) do
-        savedsettings[i] = v.Value
-    end
-    plugin:SetSetting("rblxdolly saved settings", savedsettings)
-end
-
 local settingsframe = gui.ScrollingFrame.new(nil, settingspage.Content)
 
 local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, settingsframe.Content)
 dollycamsettings:SetMain()
 
-local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
-settingobjs.lockcontrolpoints = lockcontrolpointscheckbox
-gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0.35, 0), Object = lockcontrolpointscheckbox})
+local lockcontrolpoints = gui.Checkbox.new({Value = true})
+settingobjs.lockcontrolpoints = lockcontrolpoints
+gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0.35, 0), Object = lockcontrolpoints})
+
+local playbacksettings = gui.Section.new({Text = "Playback", Open = true}, settingsframe.Content)
+playbacksettings:SetMain()
+
+local framebasedprev = gui.Checkbox.new({Value = true})
+settingobjs.framebasedprev = framebasedprev
+gui.Labeled.new({Text = "Frame-based Preview", LabelSize = UDim.new(0.35, 0), Object = framebasedprev})
+
+local framebasedfps = gui.InputField.new({Placeholder = "Roll Value", Value = 60, NoDropdown = true})
+settingobjs.framebasedfps = framebasedfps
+gui.Labeled.new({Text = "Frame-based FPS", LabelSize = UDim.new(0.5,0), Object = framebasedfps})
 
 local MASsettings = gui.Section.new({Text = "Moon Animator", Open = true}, settingsframe.Content)
 MASsettings:SetMain()
@@ -341,7 +357,6 @@ timescaleinput:Changed(function(newts)
         dep.timescale.timescale = newts
     end
 end)
-dep.dollycam.tsinput = timescaleinput
 
 fovslider:Changed(function(newfov)
     workspace.CurrentCamera.FieldOfView = newfov
@@ -362,6 +377,60 @@ end)
 scrubpathslider:Pressed(function() dep.dollycam.saveCam() end)
 scrubpathslider:Released(function() dep.dollycam.recallCam() end)
 
+rollinput:Changed(function(newroll)
+    if tonumber(newroll) then
+        dep.setRoll.angle = newroll
+    end
+end)
+dep.setRoll.inputbox = rollinput
+
+tweentimeinput:Changed(function(newtween)
+    if tonumber(newtween) then
+        dep.dollycam.latesttweentime = newtween
+    end
+end)
+
+pathinput:Changed(dep.dollycam.pathChange)
+pathinput:DropdownToggled(function()
+    dep.dollycam.reloadDropdown()
+end)
+
+local function interpUpdate(newinterp)
+    if newinterp == nil then newinterp = interpolationinput.Value end
+    dep.dollycam.interpMethod = newinterp
+    if newinterp == "cubicInterp" then
+        tensionlabel:SetDisabled(false)
+        alphalabel:SetDisabled(false)
+    else
+        alphalabel:SetDisabled(true)
+        tensionlabel:SetDisabled(true)
+    end
+    dep.dollycam.renderPath()
+end
+
+interpolationinput:Changed(function(newinterp)
+    interpUpdate(newinterp)
+    dep.HistoryService:SetWaypoint("Changed interpolation methods")
+end)
+
+lockcontrolpoints:Clicked(function(newvalue)
+    dep.dollycam.lockctrlbezier = newvalue
+end)
+
+local function framebasedprevtoggle(newvalue)
+    if newvalue == nil then newvalue = dep.dollycam.framebased end
+    dep.dollycam.framebased = newvalue
+    framebasedfps:SetDisabled(not newvalue)
+end
+
+framebasedprev:Clicked(function(newvalue)
+    framebasedprevtoggle(newvalue)
+end)
+
+framebasedfps:Changed(function(newvalue)
+    dep.dollycam.framebasedfps = newvalue
+end)
+
 local function syncMAStl(value)
     if value == nil then
         value = not syncmoontimeline.Value()
@@ -378,7 +447,7 @@ createKeybind("Moon Timeline Sync", syncMAStl)
 
 local function scaleMASTLlength(value)
     if value == nil then
-        value = not scaletoMASTLlength.Value()
+        value = not scaletoMASTLlength.Value
         scaletoMASTLlength:SetValue(value)
     end
     dep.dollycam.scaleMAStl = value
@@ -406,48 +475,23 @@ matchmoonkeyframe:Clicked(function(value)
 end)
 createKeybind("Match Moon Keyframes", syncMAStl)
 
-rollinput:Changed(function(newroll)
-    if tonumber(newroll) then
-        dep.setRoll.angle = newroll
-    end
-end)
-dep.setRoll.inputbox = rollinput
+restoreSettings()
 
-tweentimeinput:Changed(function(newtween)
-    if tonumber(newtween) then
-        dep.dollycam.latesttweentime = newtween
-    end
-end)
-dep.dollycam.latesttweentime = tweentimeinput.Value
-
-pathinput:Changed(dep.dollycam.pathChange)
-pathinput:DropdownToggled(function()
-    dep.dollycam.reloadDropdown()
-end)
-dep.dollycam.dropdown = pathinput
-
-interpolationinput:Changed(function(newinterp)
-    dep.dollycam.interpMethod = newinterp
-    if newinterp == "cubicInterp" then
-        tensionlabel:SetDisabled(false)
-        alphalabel:SetDisabled(false)
-    else
-        alphalabel:SetDisabled(true)
-        tensionlabel:SetDisabled(true)
-    end
-    dep.dollycam.renderPath()
-    dep.HistoryService:SetWaypoint("Changed interpolation methods")
-end)
 dep.dollycam.interpMethod = interpolationinput.Value
+dep.dollycam.dropdown = pathinput
+dep.dollycam.latesttweentime = tweentimeinput.Value
+dep.dollycam.tsinput = timescaleinput
+dep.dollycam.framebased = framebasedprev.Value
+dep.dollycam.framebasedfps = framebasedfps.Value
 
-lockcontrolpointscheckbox:Clicked(function(newvalue)
-    dep.dollycam.lockctrlbezier = newvalue
-end)
+framebasedprevtoggle()
 
-dep.dollycam.initialize()
+if dep.dollycam.initialize() then
+    interpUpdate()
+    scaleMASTLlength(scaletoMASTLlength.Value)
+end
 dep.dollycam.hideRender(true)
 
-restoreSettings()
 
 --[["autoreorder":SetValueChangedFunction(function(newvalue)
     if not dep.dollycam.playing then
@@ -460,6 +504,7 @@ dep.util.appendConnection(plugin.Unloading:Connect(function()
     dep.util.mvmprint("Unloading Plugin")
     local coreGui = game:GetService("CoreGui")
     coreGui:FindFirstChild("ROLLGUI"):Destroy()
+    dep.dollycam.hideRender()
     dep.util.clearConnections()
     plugin:SetSetting("rblxdolly saved keybinds", savedkeybinds)
     saveSettings()
