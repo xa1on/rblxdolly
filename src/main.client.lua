@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.4"
+local version = "0.5.5"
 local newestversion
 local outofdate = false
 
@@ -165,24 +165,44 @@ local settingspage = gui.Page.new({
     TitlebarMenu = widget.TitlebarMenu
 })
 
+local settingobjs = {}
+local savedsettings = plugin:GetSetting("rblxdolly saved settings") or {}
+local function restoreSettings()
+    for i, v in pairs(savedsettings) do
+        if settingobjs[i] ~= nil then settingobjs[i]:SetValue(v) end
+    end
+end
+
+local function saveSettings()
+    savedsettings = {}
+    for i, v in pairs(settingobjs) do
+        savedsettings[i] = v.Value
+    end
+    plugin:SetSetting("rblxdolly saved settings", savedsettings)
+end
+
 local settingsframe = gui.ScrollingFrame.new(nil, settingspage.Content)
 
 local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, settingsframe.Content)
 dollycamsettings:SetMain()
 
 local lockcontrolpointscheckbox = gui.Checkbox.new({Value = true})
+settingobjs.lockcontrolpoints = lockcontrolpointscheckbox
 gui.Labeled.new({Text = "Lock Control Points", LabelSize = UDim.new(0.35, 0), Object = lockcontrolpointscheckbox})
 
 local MASsettings = gui.Section.new({Text = "Moon Animator", Open = true}, settingsframe.Content)
 MASsettings:SetMain()
 
 local syncmoontimeline  = gui.Checkbox.new({Value = true})
+settingobjs.syncmoontimeline = syncmoontimeline
 local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Timelines", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
 
 local scaletoMASTLlength = gui.Checkbox.new({Value = false})
+settingobjs.scaletoMASTLlength = scaletoMASTLlength
 local lscaletoMASTLlength = gui.Labeled.new({Text = "Auto Scale Path to Timeline", LabelSize = UDim.new(0.35,0), Object = scaletoMASTLlength})
 
 local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
+settingobjs.matchmoonkeyframe = matchmoonkeyframe
 gui.Labeled.new({Text = "Match Camera Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})
 
 if not _G.MoonGlobal then
@@ -427,6 +447,8 @@ end)
 dep.dollycam.initialize()
 dep.dollycam.hideRender(true)
 
+restoreSettings()
+
 --[["autoreorder":SetValueChangedFunction(function(newvalue)
     if not dep.dollycam.playing then
         dep.dollycam.allowReorder = newvalue
@@ -440,6 +462,7 @@ dep.util.appendConnection(plugin.Unloading:Connect(function()
     coreGui:FindFirstChild("ROLLGUI"):Destroy()
     dep.util.clearConnections()
     plugin:SetSetting("rblxdolly saved keybinds", savedkeybinds)
+    saveSettings()
 end))
 
 if outofdate then
