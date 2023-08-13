@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.6"
+local version = "0.5.7"
 local newestversion
 local outofdate = false
 
@@ -390,7 +390,10 @@ tweentimeinput:Changed(function(newtween)
     end
 end)
 
-pathinput:Changed(dep.dollycam.pathChange)
+pathinput:LostFocus(dep.dollycam.pathChange)
+pathinput:Changed(function(p)
+    if not pathinput.Input:IsFocused() then dep.dollycam.pathChange(p) end
+end)
 pathinput:DropdownToggled(function()
     dep.dollycam.reloadDropdown()
 end)

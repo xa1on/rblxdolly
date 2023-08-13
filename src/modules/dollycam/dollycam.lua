@@ -134,9 +134,8 @@ local function tablechange()
 end
 
 function m.pathChange(newpath)
-    if m.currentPathValue == newpath then return end
+    if m.currentPathValue == newpath or not workspace:FindFirstChild(m.mvmDirName) then return end
     m.currentPathValue = newpath
-    if not workspace:FindFirstChild(m.mvmDirName) then return end
     local newpathdir = m.unloadedPathsDir:FindFirstChild(newpath)
     if newpathdir then
         m.unloadPaths()
@@ -166,12 +165,11 @@ function m.checkDir(createpath)
         if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
         return true
     elseif #m.pathsDir:GetChildren() > 0 then
-        m.reloadDropdown()
         m.currentDir = m.pathsDir:GetChildren()[1]
         if m.dropdown then m.dropdown:SetValue(m.currentDir.Name) end
         m.pointDir = util.createIfNotExist(m.currentDir, "Folder", m.pointDirName, "AncestryChanged", m.renderPath)
         m.reloadDropdown()
-        if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
+        --if m.dropdown then m.dropdown:SetValue(m.currentPathValue) end
         return true
     end
     return false
