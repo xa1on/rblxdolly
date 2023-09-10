@@ -209,9 +209,13 @@ gui.Labeled.new({Text = "Frame-based FPS", LabelSize = UDim.new(0.5,0), Object =
 local MASsettings = gui.Section.new({Text = "Moon Animator", Open = true}, settingsframe.Content)
 MASsettings:SetMain()
 
-local syncmoontimeline  = gui.Checkbox.new({Value = true})
+local syncmoontimeline = gui.Checkbox.new({Value = false})
 settingobjs.syncmoontimeline = syncmoontimeline
-local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Timelines", LabelSize = UDim.new(0.35,0), Object = syncmoontimeline})
+local lsyncMASTLgui = gui.Labeled.new({Text = "Sync Timelines", LabelSize = UDim.new(0.35, 0), Object = syncmoontimeline})
+
+local synctimelineonplay = gui.Checkbox.new({Value = true})
+settingobjs.synctimelineonplay = synctimelineonplay
+local syncMASTLonplay = gui.Labeled.new({Text = "Sync Timeline on Play", LabelSize = UDim.new(0.35, 0), Object = synctimelineonplay})
 
 local scaletoMASTLlength = gui.Checkbox.new({Value = false})
 settingobjs.scaletoMASTLlength = scaletoMASTLlength
@@ -232,9 +236,9 @@ end
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
 
 local savedkeybinds = plugin:GetSetting("rblxdolly saved keybinds") or {}
-local function createKeybind(title, action, default, binds)
+local function createKeybind(title, paction, default, binds, raction, holdable, unrestricted)
     if savedkeybinds[title] then default = savedkeybinds[title] end
-    local newkeybind = gui.KeybindInputField.new({Action = action, CurrentBind = default, Binds = binds})
+    local newkeybind = gui.KeybindInputField.new({PressedAction = paction, ReleasedAction = raction, CurrentBind = default, Binds = binds, Holdable = holdable, Unrestricted = unrestricted})
     gui.Labeled.new({Text = title, LabelSize = 0.5, Object = newkeybind}, gui.ListFrame.new(nil, keybindsection.Content).Content)
     newkeybind:Changed(function(p)
         savedkeybinds[title] = p
@@ -435,18 +439,34 @@ framebasedfps:Changed(function(newvalue)
 end)
 
 local function syncMAStl(value)
-    if value == nil then
-        value = not syncmoontimeline.Value()
+    if value == nil and not syncmoontimeline.Disabled then
+        value = not syncmoontimeline.Value
         syncmoontimeline:SetValue(value)
     end
     dep.dollycam.syncMAStl = value
+end
+local function toggleMAStl()
+    if syncmoontimeline.Disabled or not syncmoontimeline.Value then
+        dep.dollycam.syncMAStl = not dep.dollycam.syncMAStl
+    end
 end
 syncmoontimeline:Clicked(function(value)
     if not dep.dollycam.playing then
         syncMAStl(value)
     end
 end)
-createKeybind("Moon Timeline Sync", syncMAStl)
+createKeybind("Moon Timeline Sync", toggleMAStl, {{"LeftShift"}}, {{"LeftShift"}}, toggleMAStl, true, true)
+createKeybind("Toggle Moon Timeline Sync", syncMAStl)
+
+local function syncMAStlonplay(value)
+    if value == nil and not synctimelineonplay.Disabled then
+        value = not synctimelineonplay.Value
+        synctimelineonplay:SetValue(value)
+    end
+    dep.dollycam.syncMAStlonplay = value
+end
+synctimelineonplay:Clicked(syncMAStlonplay)
+createKeybind("Toggle Sync On Playback", syncMAStlonplay)
 
 local function scaleMASTLlength(value)
     if value == nil then
@@ -462,11 +482,11 @@ scaletoMASTLlength:Clicked(function(value)
         scaleMASTLlength(value)
     end
 end)
-createKeybind("Moon Timeline Auto-Scale", scaleMASTLlength)
+createKeybind("Toggle Moon Timeline Auto-Scale", scaleMASTLlength)
 
 local function matchMASkf(value)
-    if value == nil then
-        value = not matchmoonkeyframe.Value()
+    if value == nil and not matchmoonkeyframe.Disabled then
+        value = not matchmoonkeyframe.Value
         matchmoonkeyframe:SetValue(value)
     end
     dep.dollycam.matchMASkf = value
@@ -476,7 +496,7 @@ matchmoonkeyframe:Clicked(function(value)
         matchMASkf(value)
     end
 end)
-createKeybind("Match Moon Keyframes", syncMAStl)
+createKeybind("Toggle Match Moon Keyframes", syncMAStl)
 
 restoreSettings()
 
@@ -486,6 +506,9 @@ dep.dollycam.latesttweentime = tweentimeinput.Value
 dep.dollycam.tsinput = timescaleinput
 dep.dollycam.framebased = framebasedprev.Value
 dep.dollycam.framebasedfps = framebasedfps.Value
+dep.dollycam.scaleMAStl = scaletoMASTLlength.Value
+dep.dollycam.syncMAStl = syncmoontimeline.Value
+dep.dollycam.matchMASkf = matchmoonkeyframe.Value
 
 framebasedprevtoggle()
 

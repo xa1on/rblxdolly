@@ -21,7 +21,8 @@ local returnFOV
 m.playing = false
 
 -- variables
-m.syncMAStl = true
+m.syncMAStl = false
+m.syncMAStlonplay = true
 m.scaleMAStl = false
 m.matchMASkf = false
 m.framebased = false
@@ -552,14 +553,23 @@ function m.getLength()
     return totalTime
 end
 
-function m.goToTime(currenttime)
+local moon = _G.MoonGlobal
+local MASLS
+local previouskf = 0
+local previoustllength = 0
+local previousfps = 0
+MASLS = util.tableexist(moon,{"Windows","MoonAnimator","g_e","LayerSystem"})
+
+function m.goToTime(currenttime, savecomp)
     local points = m.grabPoints()
     local previewLocation = interp.pathInterp(points, currenttime, interp[m.interpMethod])
     if previewLocation[1] then return true else
         local Camera = workspace.CurrentCamera
+        local fps = moon.current_fps
         Camera.CameraType = Enum.CameraType.Custom
         Camera.FieldOfView = previewLocation[3]
         Camera.CFrame = util.setCFRoll(previewLocation[2], math.rad(previewLocation[4]))
+        if (m.syncMAStl and not savecomp) or (m.playing and m.syncMAStlonplay) then MASLS:SetSliderFrame(math.round((currenttime*fps)/tscale.timescale + moon.time_offset)) end
     end
 end
 
@@ -600,13 +610,6 @@ end
 tscale.resetTimescale()
 local RunService = game:GetService("RunService")
 
-local moon = _G.MoonGlobal
-local MASLS
-local previouskf = 0
-local previoustllength = 0
-local previousfps = 0
-MASLS = util.tableexist(moon,{"Windows","MoonAnimator","g_e","LayerSystem"})
-
 function m.scaleTL()
     if m.playing or (not MASLS) then return end
     local tllength = MASLS.length
@@ -637,7 +640,7 @@ util.appendConnection(RunService.Heartbeat:Connect(function(step)
     if m.syncMAStl then
         if previouskf ~= framenum then
             previouskf = framenum
-            m.goToTime((framenum/fps)*tscale.timescale)
+            m.goToTime((framenum/fps)*tscale.timescale, true)
         end
     end
     if m.scaleMAStl then
