@@ -126,9 +126,7 @@ local pathoptions = gui.Section.new({Text = "Path Options", Open = true})
 pathoptions:SetMain()
 
 local pathinput = gui.InputField.new({Placeholder = "Path Name"})
-gui.Labeled.new({Text = "Path", LabelSize = UDim.new(0,85), Object = pathinput})
-
-gui.ListFrame.new({Height = 5})
+local pathlabel = gui.Labeled.new({Text = "Path", LabelSize = UDim.new(0,85), Object = pathinput})
 
 local interpolationinput = gui.InputField.new({CurrentItem = {Name = "Cubic Curve", Value = "cubicInterp"}, Items = {{Name = "Manual Curve", Value = "bezierInterp"}, {Name = "Linear", Value = "linearInterp"}, {Name = "Cubic Curve", Value = "cubicInterp"}}, DisableEditing = true})
 settingobjs.interpolationinput = interpolationinput
@@ -136,6 +134,11 @@ gui.Labeled.new({Text = "Interpolation", LabelSize = UDim.new(0,85), Object = in
 
 local timescaleinput = gui.InputField.new({Placeholder = "Timescale Value", Value = 1, NoDropdown = true})
 local timescalelabel = gui.Labeled.new({Text = "Timescale", LabelSize = UDim.new(0,85), Object = timescaleinput})
+
+local delayinput = gui.InputField.new({Placeholder = "Delay (in seconds)", Value = 0, NoDropdown = true})
+local delaylabel = gui.Labeled.new({Text = "Delay", LabelSize = UDim.new(0, 86), Object = delayinput})
+
+gui.ListFrame.new({Height = 5})
 
 local cubicoptions = gui.Section.new({Text = "Cubic Interpolation Options", Open = false})
 cubicoptions:SetMain()
@@ -159,16 +162,27 @@ local startstopplayback = gui.Button.new({Text = "Start/Stop Playback", ButtonSi
 
 local resetcontrolpoints = gui.Button.new({Text = "Reset All Control Points", ButtonSize = 0.55})
 
+gui.ListFrame.new({Height = 5})
+
+local moonPathSection = gui.Section.new({Text = "Moon Animator (MAS)", Open = false})
+moonPathSection:SetMain()
+
+gui.ListFrame.new({Height = 5})
+
+local createMoonDollycam = gui.Button.new({Text = "Create Moon Dollycam"})
+
 local scaleMASpathtotl = gui.Button.new({Text = "Scale Path To Moon Timeline Length"})
 
 gui.ListFrame.new({Height = 5})
+
+pathoptions:SetMain()
 
 local pointoptions = gui.Section.new({Text = "Point Options", Open = true}, mainpageframe.Content)
 pointoptions:SetMain()
 
 -- AKA tweentime
 local tweentimeinput = gui.InputField.new({Placeholder = "Transition Time Value", Value = 2.5, NoDropdown = true})
-gui.Labeled.new({Text = "Transition Time", LabelSize = UDim.new(0,85), Object = tweentimeinput})
+local tweentimelabel = gui.Labeled.new({Text = "Transition Time", LabelSize = UDim.new(0,85), Object = tweentimeinput})
 
 local fovinput = gui.InputField.new({Placeholder = "FOV Value", Value = math.round(workspace.CurrentCamera.FieldOfView), NoDropdown = true})
 local fovslider = gui.Slider.new({Min = 0, Max = 120, Increment = 1, Value = math.round(workspace.CurrentCamera.FieldOfView)})
@@ -206,7 +220,7 @@ local framebasedfps = gui.InputField.new({Placeholder = "Roll Value", Value = 60
 settingobjs.framebasedfps = framebasedfps
 gui.Labeled.new({Text = "Frame-based FPS", LabelSize = UDim.new(0.5,0), Object = framebasedfps})
 
-local MASsettings = gui.Section.new({Text = "Moon Animator", Open = true}, settingsframe.Content)
+local MASsettings = gui.Section.new({Text = "Moon Animator (MAS)", Open = true}, settingsframe.Content)
 MASsettings:SetMain()
 
 local syncmoontimeline = gui.Checkbox.new({Value = false})
@@ -221,16 +235,13 @@ local scaletoMASTLlength = gui.Checkbox.new({Value = false})
 settingobjs.scaletoMASTLlength = scaletoMASTLlength
 local lscaletoMASTLlength = gui.Labeled.new({Text = "Auto Scale Path to Timeline", LabelSize = UDim.new(0.35,0), Object = scaletoMASTLlength})
 
-local matchmoonkeyframe  = gui.Checkbox.new({Value = false})
-settingobjs.matchmoonkeyframe = matchmoonkeyframe
-gui.Labeled.new({Text = "Match Camera Keyframes", LabelSize = UDim.new(0.35,0), Object = matchmoonkeyframe, Disabled = true})
-
 if not _G.MoonGlobal then
     lsyncMASTLgui:SetDisabled(true)
     syncmoontimeline:SetValue(false)
     lscaletoMASTLlength:SetDisabled(true)
     scaletoMASTLlength:SetValue(false)
     scaleMASpathtotl:SetDisabled(true)
+    createMoonDollycam:SetDisabled(true)
 end
 
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
@@ -319,6 +330,9 @@ end
 resetcontrolpoints:Clicked(clearctrlbezier)
 createKeybind("Reset Control Points", clearctrlbezier)
 
+createMoonDollycam:Clicked(dep.dollycam.createMoonDollycam)
+createKeybind("Create Moon Dollycam")
+
 local function scaleMASpath()
     if dep.dollycam.playing then return end
     dep.dollycam.scaleTLTween()
@@ -362,6 +376,12 @@ timescaleinput:Changed(function(newts)
     end
 end)
 
+delayinput:Changed(function(newdelay)
+    if tonumber(newdelay) then
+        dep.dollycam.delay = tonumber(newdelay)
+    end
+end)
+
 fovslider:Changed(function(newfov)
     workspace.CurrentCamera.FieldOfView = newfov
     if fovinput.Value ~= newfov then fovinput:SetValue(newfov) end
@@ -372,10 +392,16 @@ fovinput:Changed(function(newfov)
         if fovslider.Value ~= newfov then fovslider:SetValue(newfov) end
     end
 end)
+dep.util.appendConnection(workspace.CurrentCamera.Changed:Connect(function(p)
+    if p == "FieldOfView" then
+        fovinput:SetValue(workspace.CurrentCamera.FieldOfView)
+        fovslider:SetValue(workspace.CurrentCamera.FieldOfView)
+    end
+end))
 
 scrubpathslider:Changed(function(progress)
     if not dep.dollycam.playing then
-        dep.dollycam.goToProgress(progress)
+        dep.dollycam.goToProgress(progress, true)
     end
 end)
 scrubpathslider:Pressed(function() dep.dollycam.saveCam() end)
@@ -411,6 +437,9 @@ local function interpUpdate(newinterp)
     else
         alphalabel:SetDisabled(true)
         tensionlabel:SetDisabled(true)
+    end
+    if newinterp == "bezierInterp" and dep.dollycam.useMoonCam then
+        interpolationinput:SetValue({Name = "Cubic Curve", Value = "cubicInterp"})
     end
     dep.dollycam.renderPath()
 end
@@ -456,7 +485,7 @@ syncmoontimeline:Clicked(function(value)
     end
 end)
 createKeybind("Moon Timeline Sync", toggleMAStl, {{"LeftShift"}}, {{"LeftShift"}}, toggleMAStl, true, true)
-createKeybind("Toggle Moon Timeline Sync", syncMAStl)
+createKeybind("Toggle MAS TL Sync", syncMAStl)
 
 local function syncMAStlonplay(value)
     if value == nil and not synctimelineonplay.Disabled then
@@ -482,21 +511,28 @@ scaletoMASTLlength:Clicked(function(value)
         scaleMASTLlength(value)
     end
 end)
-createKeybind("Toggle Moon Timeline Auto-Scale", scaleMASTLlength)
+createKeybind("Toggle MAS TL Auto-Scale", scaleMASTLlength)
 
-local function matchMASkf(value)
-    if value == nil and not matchmoonkeyframe.Disabled then
-        value = not matchmoonkeyframe.Value
-        matchmoonkeyframe:SetValue(value)
+
+local function toggleMoonSync(on)
+    pathlabel:SetDisabled(on)
+    timescalelabel:SetDisabled(on)
+    delaylabel:SetDisabled(on)
+    tweentimelabel:SetDisabled(on)
+    scaleMASpathtotl:SetDisabled(on)
+    resetcontrolpoints:SetDisabled(on)
+    if on then
+        if interpolationinput.Value == "bezierInterp" then
+            interpolationinput:SetValue({Name = "Cubic Curve", Value = "cubicInterp"})
+        end
+        delayinput:SetValue(0)
+        interpolationinput:RemoveItem("Manual Curve")
+    else
+        interpolationinput:AddItem({Name = "Manual Curve", Value = "bezierInterp"})
     end
-    dep.dollycam.matchMASkf = value
 end
-matchmoonkeyframe:Clicked(function(value)
-    if not dep.dollycam.playing then
-        matchMASkf(value)
-    end
-end)
-createKeybind("Toggle Match Moon Keyframes", syncMAStl)
+
+
 
 restoreSettings()
 
@@ -508,7 +544,8 @@ dep.dollycam.framebased = framebasedprev.Value
 dep.dollycam.framebasedfps = framebasedfps.Value
 dep.dollycam.scaleMAStl = scaletoMASTLlength.Value
 dep.dollycam.syncMAStl = syncmoontimeline.Value
-dep.dollycam.matchMASkf = matchmoonkeyframe.Value
+dep.dollycam.toggleMoonSync = toggleMoonSync
+
 
 framebasedprevtoggle()
 

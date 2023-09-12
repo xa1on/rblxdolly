@@ -8,6 +8,7 @@ m.tension = 0
 m.alpha = 0
 
 function m.CFrameDist(cf1, cf2)
+    if not cf1 or not cf2 then return 0 end
     return math.abs((cf1.Position - cf2.Position).Magnitude)
 end
 
@@ -107,16 +108,18 @@ function m.interpolateCF(path, t, func, control)
     end
     local cpv = {}
     local clv = {}
-    for i, v in pairs(control) do
-        cpv[i] = {}
-        clv[i] = {}
-        if v[1] then
-            cpv[i][1] = v[1].Position
-            clv[i][1] = v[1].LookVector
-        end
-        if v[2] then
-            cpv[i][2] = v[2].Position
-            clv[i][2] = v[2].LookVector
+    if control then
+        for i, v in pairs(control) do
+            cpv[i] = {}
+            clv[i] = {}
+            if v[1] then
+                cpv[i][1] = v[1].Position
+                clv[i][1] = v[1].LookVector
+            end
+            if v[2] then
+                cpv[i][2] = v[2].Position
+                clv[i][2] = v[2].LookVector
+            end
         end
     end
     local newpv = func(pv, t, cpv)
@@ -182,6 +185,52 @@ function m.pathInterp(points, t, func)
     end
     local lastPoint = points[#points]
     return {true, lastPoint.CFrame, lastPoint.FOV.Value, lastPoint.Roll.Value}
+end
+
+function m.moonSegmentInterp(points, t, func)
+    for _,v in pairs(points) do
+        v[0] = v[0] or v[1]
+        v[1] = v[1] or v[2]
+        v[2] = v[2] or v[1]
+        v[3] = v[3] or v[2]
+    end
+    local content = {CFrame = {}, FOV = {}, Roll = {}}
+    local progress = {CFrame = 0, FOV = 0, Roll = 0}
+    for j, v in pairs(points) do
+        for i = 0,3,1 do
+            if v[i] then content[j][i] = v[i][1] end
+        end
+        if v[2][2] - v[1][2] == 0 then
+            progress[j] = 1
+        else
+            progress[j] = (t - v[1][2]) / (v[2][2] - v[1][2])
+        end
+    end
+    --print(util.dump(content))
+    --print(util.dump(progress))
+    return {false,
+    m.interpolateCF(content.CFrame, progress.CFrame, func),
+    func(content.FOV, progress.FOV),
+    func(content.Roll, progress.Roll),0}
+end
+
+function m.moonPathInterp(points, t, func)
+    local returnTable
+    local inputTable = {}
+    local found = false
+    for i,v in pairs(points) do
+        found = false
+        for j, k in pairs(v) do
+            if k[2] > t then
+                inputTable[i] = {[0] = v[j-2], [1] = v[j-1], [2] = k, [3] = v[j+1]}
+                found = true
+                break
+            end
+        end
+        if not found then inputTable[i] = {v[#v]} end
+    end
+    returnTable = m.moonSegmentInterp(inputTable, t, func)
+    return {false, returnTable[2], returnTable[3], returnTable[4], 0}
 end
 
 return m

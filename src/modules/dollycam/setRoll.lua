@@ -114,6 +114,11 @@ function m.setRollTo(r)
     m.updateTextBoxAngle()
 end
 
+function m.updateRoll(r)
+    m.curr_angle = math.rad(r)
+    m.updateTextBoxAngle()
+end
+
 util.appendConnection(inputService.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseWheel and m.roll_active == true then
         m.setRollTo(m.angle+(input.Position.Z)*2)

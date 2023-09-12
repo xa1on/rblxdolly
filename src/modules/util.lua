@@ -63,6 +63,7 @@ end
 
 function m.clearConnections()
     for _, v in pairs(m.connections) do
+        print("Clearing... ")
         v:Disconnect()
     end
     m.mvmprint("Connections Cleared")

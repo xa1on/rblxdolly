@@ -1,6 +1,7 @@
 local startctrlName = "1"
 local endctrlName = "2"
 local interpMethod = "bezierInterp"
+local delay = 0
 local tension = 0.5
 local alpha = 0.5
 
@@ -31,28 +32,29 @@ local function cubic(t, a, b, c, d)
     return a + t*(b + t*(c + t*d))
 end
 k.cosineInterp = cosineInterp
-local function catmullRomInterp(path, t)
+function catmullRomInterp(path, t, _)
     local p0 = path[0] or path[1]
     local p1 = path[1]
     local p2 = path[2] or p1
-    local p3 = path[3] or p2
+	local p3 = path[3] or p2
+	print(alpha)
+	print(tension)
     local function tj(pi, pf)
         if pi == pf then return 1 end
         if type(pi) == "number" then
-            return pi-pf
+            return math.abs(pi-pf)
         elseif type(pi) == "vector" then
             return (pi-pf).Magnitude
         else
             return CFrameDist(pi,pf)^2
         end
-    end
+	end
     local t0 = 0;
     local t1 = t0 + tj(p0,p1)^alpha;
     local t2 = t1 + tj(p1,p2)^alpha;
     local t3 = t2 + tj(p2,p3)^alpha;
     local m1 = (1.0 - tension) * (t2 - t1) * ((p1 - p0) / (t1 - t0) - (p2 - p0) / (t2 - t0) + (p2 - p1) / (t2 - t1));
-    local m2 = (1.0 - tension) * (t2 - t1) * ((p2 - p1) / (t2 - t1) - (p3 - p1) / (t3 - t1) + (p3 - p2) / (t3 - t2));
-
+	local m2 = (1.0 - tension) * (t2 - t1) * ((p2 - p1) / (t2 - t1) - (p3 - p1) / (t3 - t1) + (p3 - p2) / (t3 - t2));
     return cubic(t, p1, m1, -3*(p1 - p2) - m1 - m1 - m2, 2*(p1 - p2) + m1 + m2)
 end
 k.cubicInterp = catmullRomInterp
@@ -164,7 +166,7 @@ local returnFOV = Camera.FieldOfView
 local timescale = 1
 m.previewing = false
 
-function m.startPreview(ts, interp, tension, alpha)
+function m.startPreview(ts, interp, dlay, tension, alpha)
     tension = tension
     alpha = alpha
     local pointdir = script:FindFirstChildWhichIsA("Folder")
@@ -176,6 +178,7 @@ function m.startPreview(ts, interp, tension, alpha)
     for _, i in pairs(sort) do points[#points+1] = pointdir:FindFirstChild(tostring(i)) end
     interpMethod = interp or interpMethod
     timescale = ts
+    delay = dlay
     previewTime = 0
     Camera = workspace.CurrentCamera
     returnCFrame = Camera.CFrame
@@ -199,10 +202,13 @@ end
 game:GetService("RunService").Heartbeat:Connect(function(step)
     if not points or not m.previewing then return end
     local scaledTime = previewTime * timescale
-    local previewLocation = pathInterp(points, scaledTime, k[interpMethod])
+    local previewLocation = pathInterp(points, math.max(scaledTime-delay, 0), k[interpMethod])
     if not previewLocation[1] then
+        Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Custom
         Camera.FieldOfView = previewLocation[3]
+        print(previewLocation[2])
+        print(previewLocation[4])
         Camera.CFrame = m.setCFRoll(previewLocation[2], math.rad(previewLocation[4]))
     else
         m.stopPreview()

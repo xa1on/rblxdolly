@@ -7,6 +7,7 @@ local setRoll = require(script.Parent.setRoll)
 local interp = require(script.Parent.interpolation)
 local tscale = require(script.Parent.timescale)
 local util = require(script.Parent.Parent.util)
+local NoticePopup = require(script.Parent.Parent.NoticePopup)
 
 local repStorage = game:GetService("ReplicatedStorage")
 
@@ -24,9 +25,9 @@ m.playing = false
 m.syncMAStl = false
 m.syncMAStlonplay = true
 m.scaleMAStl = false
-m.matchMASkf = false
 m.framebased = false
 m.framebasedfps = 60
+m.delay = 0
 
 m.latesttweentime = nil
 m.interpMethod = nil
@@ -34,18 +35,23 @@ m.currentPathValue = nil
 m.dropdown = nil
 m.tsinput = nil
 m.lockctrlbezier = true
+m.useMoonCam = false
 
 m.mvmDirName = "mvmpaths"
 m.renderDirName = "Render"
 m.pathsDirName = "Paths"
 m.pointDirName = "Points"
 m.scriptName = "mvmplayback"
+m.moonSyncCamName = "rblx dollycam"
 
 m.mvmDir = nil
 m.renderDir = nil
 m.pathsDir = nil
 m.currentDir = nil
 m.pointDir = nil
+m.moonSyncCam = nil
+m.moonSyncCamRoll = nil
+m.toggleMoonSync = nil
 
 m.unloadedMvmDir = nil
 m.unloadedPathsDir = nil
@@ -80,6 +86,10 @@ m.pointProperties = {
     }
 }
 
+local moon = _G.MoonGlobal
+local MA = util.tableexist(moon,{"Windows","MoonAnimator"})
+local MASLS = util.tableexist(MA,{"g_e","LayerSystem"})
+local MASLSLC = util.tableexist(MASLS, {"LayerHandler", "LayerContainer"})
 
 
 
@@ -100,6 +110,28 @@ function m.loadPath(path)
 end
 
 function m.grabPoints(path)
+    if m.useMoonCam then
+        local points = {CFrame = {}, FOV = {}, Roll = {}}
+        local Tracks = m.grabTracks()
+        Tracks.CFrame:SetEnabled(false)
+        Tracks.FOV:SetEnabled(false)
+        for i,v in Tracks do
+            v.TrackItems:Iterate(function(Frame)
+                points[i][#points[i]+1] = {Frame.TargetValues[0], Frame.frm_pos / moon.current_fps}
+            end)
+        end
+        local camera = workspace.CurrentCamera
+        if #points.CFrame == 0 then
+            points.CFrame[1] = {util.setCFRoll(camera.CFrame, 0),0}
+        end
+        if #points.FOV == 0 then
+            points.FOV[1] = {camera.FieldOfView,0}
+        end
+        if #points.Roll == 0 then
+            points.Roll[1] = {m.moonSyncCamRoll.Value,0}
+        end
+        return points
+    end
     if not path then m.checkDir() path = m.pointDir end
     if not path or not util.notnill(path) then return {} end
     local points = {}
@@ -151,6 +183,8 @@ function m.checkDir(createpath)
     m.unloadedMvmDir = util.createIfNotExist(repStorage, "Folder", m.mvmDirName)
     m.unloadedPathsDir = util.createIfNotExist(m.unloadedMvmDir, "Folder", m.pathsDirName)
     m.mvmDir = util.createIfNotExist(workspace, "Folder", m.mvmDirName)
+    m.moonSyncCam = util.createIfNotExist(m.mvmDir, "Camera", m.moonSyncCamName)
+    m.moonSyncCamRoll = util.createIfNotExist(m.moonSyncCam, "NumberValue", "Roll")
     m.renderDir = util.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
     m.pathsDir = util.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
     if m.currentPathValue and string.len(m.currentPathValue) > 0 and createpath then
@@ -478,6 +512,11 @@ end
 
 function m.createPoint()
     m.checkDir(true)
+    if m.useMoonCam then
+        local Tracks = m.grabTracks()
+        MA.DoCompositeAction("AddToTracks", {Tracks = {Tracks.CFrame, Tracks.FOV, Tracks.Roll}})
+        return
+    end
     if not util.notnill(m.pointDir) then return end
     local Camera = workspace.CurrentCamera
     local points = m.grabPoints()
@@ -543,8 +582,33 @@ function m.recallCam()
     Camera.FieldOfView = m.returnFOV
 end
 
+
+local previouskf = 0
+local previoustllength = 0
+local previousfps = 0
+
+-- _G.MoonGlobal - all moon global var
+-- _g.current_fps - get fps
+-- _g.time_offset + _g.Windows.MoonAnimator.g_e.LayerSystem.SliderFrame - current frame number
+-- _g.Windows.MoonAnimator.g_e.LayerSystem.length - anim length (frames)
+-- LayerSystem.LayerHandler.LayerContainer:Iterate - get all tracks
+-- LayerSystem.LayerHandler.LayerContainer:Iterate(Track  ->  Track.TrackItems:Iterate(TrackItem)) - get all keyframes
+-- Track.name - track name
+-- Track.Enabled - track enabled
+-- Track.type[1] - tracktype -> CameraCFrameTrack
+-- Track.selected - track selected
+-- TrackItem.frm_pos - frame position
+-- LayerSystem:SetSliderFrame(frame) - go to frame
+-- MA.DoCompositeAction("AddToSelectedTracks") - add keyframe to selected tracks
+-- MA.DoCompositeAction("AddToTracks", {Tracks = {Track}}) - add keyframe to specific track
+-- LayerSystem.SelectionHandler:_SelectTrack(Track) - SelectTrack
+-- MA.DoCompositeAction("AddItems", {ItemList = {workspace:FindFirstChild("rblxdolly frames")}, PropList = {"Value"}, MarkerTrack = false}) - Additem
+
 function m.getLength()
-    local totalTime = 0
+    local totalTime = m.delay
+    if m.useMoonCam then
+        return MASLS.length / moon.current_fps
+    end
     local points = m.grabPoints()
     for i, v in points do
         if i == #points then break end
@@ -553,22 +617,21 @@ function m.getLength()
     return totalTime
 end
 
-local moon = _G.MoonGlobal
-local MASLS
-local previouskf = 0
-local previoustllength = 0
-local previousfps = 0
-MASLS = util.tableexist(moon,{"Windows","MoonAnimator","g_e","LayerSystem"})
-
 function m.goToTime(currenttime, savecomp)
+    local previewLocation
     local points = m.grabPoints()
-    local previewLocation = interp.pathInterp(points, currenttime, interp[m.interpMethod])
-    if previewLocation[1] then return true else
+    local fps = moon.current_fps
+    if m.useMoonCam then
+        previewLocation = interp.moonPathInterp(points, currenttime, interp[m.interpMethod])
+    else
+        previewLocation = interp.pathInterp(points, math.max(currenttime - m.delay,0), interp[m.interpMethod])
+    end
+    if (previewLocation[1] and not m.useMoonCam) or (m.useMoonCam and MASLS.length == MASLS.SliderFrame) then return true else
         local Camera = workspace.CurrentCamera
-        local fps = moon.current_fps
         Camera.CameraType = Enum.CameraType.Custom
         Camera.FieldOfView = previewLocation[3]
         Camera.CFrame = util.setCFRoll(previewLocation[2], math.rad(previewLocation[4]))
+        setRoll.updateRoll(previewLocation[4])
         if (m.syncMAStl and not savecomp) or (m.playing and m.syncMAStlonplay) then MASLS:SetSliderFrame(math.round((currenttime*fps)/tscale.timescale + moon.time_offset)) end
     end
 end
@@ -584,11 +647,16 @@ function m.preview(step)
     previewTime = previewTime + step
 end
 
-function m.goToProgress(progress)
+function m.goToProgress(progress, nodelay)
     if m.playing then return end
     if setRoll.roll_active then setRoll.toggleRollGui() end
-    local currenttime = progress*m.getLength()
-    m.goToTime(currenttime)
+    local currenttime
+    if nodelay then
+        currenttime = progress*(m.getLength() - m.delay) + m.delay
+    else
+        currenttime = progress*(m.getLength())
+    end
+    m.goToTime(currenttime, false)
 end
 
 function m.createPlaybackScript()
@@ -600,7 +668,7 @@ function m.createPlaybackScript()
     playbackpoints.Parent = newScript
     local runscript = Instance.new("Script", newScript)
     runscript.Name = "Run"
-    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ", \"" .. m.interpMethod .. "\", " .. interp.tension .. ", " .. interp.alpha .. ")"
+    runscript.Source = "local playback = require(script.Parent)\n\n-- 5 second delay before cine plays(loads things in)\ntask.wait(5)\nplayback.startPreview(" .. tscale.timescale .. ", \"" .. m.interpMethod .. "\", " .. m.delay .. ", " .. interp.tension .. ", " .. interp.alpha .. ")"
 end
 
 function m.export3D()
@@ -631,6 +699,64 @@ function m.scaleTLTween()
     end
 end
 
+function m.moonDollyExist()
+    m.checkDir(true)
+    if not m.moonSyncCam then return end
+    local camfound = false
+    local rollfound = false
+    MASLSLC:Iterate(function(Track)
+        if Track.ParentContainer and Track.ParentContainer.name == "Camera_" .. m.moonSyncCamName then
+            camfound = true
+            return
+        end
+        if Track.Target == m.moonSyncCamRoll then
+            rollfound = true
+            return
+        end
+    end)
+    return camfound and rollfound
+end
+
+function m.createMoonDollycam()
+    m.checkDir(true)
+    if not m.moonSyncCam then return end
+    local camfound = false
+    local rollfound = false
+    MASLSLC:Iterate(function(Track)
+        if Track.ParentContainer and Track.ParentContainer.name == "Camera_" .. m.moonSyncCamName then
+            camfound = true
+        end
+        if Track.Target == m.moonSyncCamRoll then
+            rollfound = true
+        end
+    end)
+    if not camfound then
+        MA.DoCompositeAction("AddItems", {ItemList = {m.moonSyncCam}, PropList = {"CFrame", "FieldOfView"}, MarkerTrack = false})
+    end
+    if not rollfound then
+        MA.DoCompositeAction("AddItems", {ItemList = {m.moonSyncCam.Roll}, PropList = {"Value"}, MarkerTrack = false})
+    end
+end
+
+function m.grabTracks()
+    local CFrameTrack
+    local FOVTrack
+    local RollTrack
+    local ParentContainer
+    MASLSLC:Iterate(function(Track)
+        if Track.Target == m.moonSyncCam then
+            FOVTrack = Track
+            ParentContainer = Track.ParentContainer
+        elseif Track.Target == m.moonSyncCamRoll then
+            RollTrack = Track
+        end
+        if tostring(Track.type[1]) == "CameraCFrameTrack" and (ParentContainer == nil or ParentContainer == Track.ParentContainer) then
+            CFrameTrack = Track
+        end
+    end)
+    return {CFrame = CFrameTrack, FOV = FOVTrack, Roll = RollTrack}
+end
+
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
     m.preview(step)
     if m.playing or (not MASLS) then return end
@@ -639,7 +765,6 @@ util.appendConnection(RunService.Heartbeat:Connect(function(step)
     local fps = moon.current_fps
     if m.syncMAStl then
         if previouskf ~= framenum then
-            previouskf = framenum
             m.goToTime((framenum/fps)*tscale.timescale, true)
         end
     end
@@ -650,6 +775,18 @@ util.appendConnection(RunService.Heartbeat:Connect(function(step)
             m.scaleTL()
         end
     end
+    if m.moonDollyExist() then
+        if not m.useMoonCam then
+            m.useMoonCam = true
+            m.unloadPaths()
+            m.toggleMoonSync(true)
+            m.delay = 0
+        end
+    elseif m.useMoonCam then
+        m.useMoonCam = false
+        m.toggleMoonSync()
+    end
+    previouskf = framenum
 end))
 
 function m.initialize()
