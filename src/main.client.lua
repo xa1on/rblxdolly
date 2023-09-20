@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.8"
+local version = "0.5.9"
 local newestversion
 local outofdate = false
 
@@ -146,10 +146,14 @@ cubicoptions:SetMain()
 local tensioninput = gui.InputField.new({Placeholder = "Tension Value", NoDropdown = true, Value = 0})
 local tensionslider = gui.Slider.new({Min = -3, Max = 1, Increment = 0.01, Value = 0})
 local tensionlabel = gui.Labeled.new({Text = "Cubic Tension", LabelSize = UDim.new(0,85), Disabled = true, Objects = {{Object = tensioninput, Name = "input", Size = UDim.new(0.3,0)}, {Object = tensionslider, Name = "slider"}}})
+settingobjs.tensioninput = tensioninput
+settingobjs.tensionslider = tensionslider
 
 local alphainput = gui.InputField.new({Placeholder = "Alpha Value", NoDropdown = true, Value = 0})
 local alphaslider = gui.Slider.new({Min = 0, Max = 1, Increment = 0.01, Value = 0})
 local alphalabel = gui.Labeled.new({Text = "Cubic Alpha", LabelSize = UDim.new(0,85), Disabled = true, Objects = {{Object = alphainput, Name = "input", Size = UDim.new(0.3,0)}, {Object = alphaslider, Name = "slider"}}})
+settingobjs.alphainput = alphainput
+settingobjs.alphaslider = alphaslider
 
 pathoptions:SetMain()
 
@@ -202,6 +206,15 @@ local settingspage = gui.Page.new({
 
 local settingsframe = gui.ScrollingFrame.new(nil, settingspage.Content)
 
+local rendersettings = gui.Section.new({Text = "Render", Open = true}, settingsframe.Content)
+rendersettings:SetMain()
+
+local renderpathcheckbox = gui.Checkbox.new({Value = true})
+settingobjs.renderpathcheckbox = renderpathcheckbox
+gui.Labeled.new({Text = "Render Path Visual", LabelSize = UDim.new(0.35, 0), Object = renderpathcheckbox})
+
+local forcerenderbutton = gui.Button.new({Text = "Force Re-render", ButtonSize = 0.55})
+
 local dollycamsettings = gui.Section.new({Text = "Dollycam", Open = true}, settingsframe.Content)
 dollycamsettings:SetMain()
 
@@ -235,6 +248,10 @@ local scaletoMASTLlength = gui.Checkbox.new({Value = false})
 settingobjs.scaletoMASTLlength = scaletoMASTLlength
 local lscaletoMASTLlength = gui.Labeled.new({Text = "Auto Scale Path to Timeline", LabelSize = UDim.new(0.35,0), Object = scaletoMASTLlength})
 
+local autoDockMAS = gui.Checkbox.new({Value = true})
+settingobjs.autoDockMAS = autoDockMAS
+local lautoDockMAS = gui.Labeled.new({Text = "Auto Dock MAS Camera", LabelSize = UDim.new(0.35,0), Object = autoDockMAS})
+
 if not _G.MoonGlobal then
     lsyncMASTLgui:SetDisabled(true)
     syncmoontimeline:SetValue(false)
@@ -242,6 +259,7 @@ if not _G.MoonGlobal then
     scaletoMASTLlength:SetValue(false)
     scaleMASpathtotl:SetDisabled(true)
     createMoonDollycam:SetDisabled(true)
+    lautoDockMAS:SetDisabled(true)
 end
 
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
@@ -269,6 +287,40 @@ gui.Textbox.new({
 })
 
 local dep = require(script.Parent.dependencies)
+
+local function toggleMoonSync(on)
+    pathlabel:SetDisabled(on)
+    timescalelabel:SetDisabled(on)
+    delaylabel:SetDisabled(on)
+    tweentimelabel:SetDisabled(on)
+    scaleMASpathtotl:SetDisabled(on)
+    resetcontrolpoints:SetDisabled(on)
+    --dep.dollycam.hideRender(not on)
+    if on then
+        if interpolationinput.Value == "bezierInterp" then
+            interpolationinput:SetValue({Name = "Cubic Curve", Value = "cubicInterp"})
+        end
+        delayinput:SetValue(0)
+        interpolationinput:RemoveItem("Manual Curve")
+    else
+        interpolationinput:AddItem({Name = "Manual Curve", Value = "bezierInterp"})
+    end
+end
+
+restoreSettings()
+
+dep.dollycam.interpMethod = interpolationinput.Value
+dep.dollycam.dropdown = pathinput
+dep.dollycam.latesttweentime = tweentimeinput.Value
+dep.dollycam.tsinput = timescaleinput
+dep.dollycam.framebased = framebasedprev.Value
+dep.dollycam.framebasedfps = framebasedfps.Value
+dep.dollycam.scaleMAStl = scaletoMASTLlength.Value
+dep.dollycam.syncMAStl = syncmoontimeline.Value
+dep.dollycam.toggleMoonSync = toggleMoonSync
+dep.dollycam.autoDockMAS = autoDockMAS.Value
+dep.dollycam.renderVisual = renderpathcheckbox.Value
+
 
 local function exportScript()
     dep.dollycam.createPlaybackScript()
@@ -383,8 +435,8 @@ delayinput:Changed(function(newdelay)
 end)
 
 fovslider:Changed(function(newfov)
-    workspace.CurrentCamera.FieldOfView = newfov
     if fovinput.Value ~= newfov then fovinput:SetValue(newfov) end
+    workspace.CurrentCamera.FieldOfView = newfov
 end)
 fovinput:Changed(function(newfov)
     if tonumber(newfov) then
@@ -453,11 +505,30 @@ lockcontrolpoints:Clicked(function(newvalue)
     dep.dollycam.lockctrlbezier = newvalue
 end)
 
+local function renderpathtoggle(value)
+    if value == nil then value = dep.dollycam.renderVisual end
+    dep.dollycam.renderVisual = value
+    dep.dollycam.hideRender(value)
+    if value then
+        dep.dollycam.renderPath()
+    end
+end
+renderpathcheckbox:Clicked(function(value)
+    renderpathtoggle(value)
+end)
+
+local function forcerender()
+    dep.dollycam.renderPath()
+end
+forcerenderbutton:Clicked(forcerender)
+createKeybind("Force Re-render", forcerender)
+
 local function framebasedprevtoggle(newvalue)
     if newvalue == nil then newvalue = dep.dollycam.framebased end
     dep.dollycam.framebased = newvalue
     framebasedfps:SetDisabled(not newvalue)
 end
+framebasedprevtoggle()
 
 framebasedprev:Clicked(function(newvalue)
     framebasedprevtoggle(newvalue)
@@ -513,41 +584,21 @@ scaletoMASTLlength:Clicked(function(value)
 end)
 createKeybind("Toggle MAS TL Auto-Scale", scaleMASTLlength)
 
-
-local function toggleMoonSync(on)
-    pathlabel:SetDisabled(on)
-    timescalelabel:SetDisabled(on)
-    delaylabel:SetDisabled(on)
-    tweentimelabel:SetDisabled(on)
-    scaleMASpathtotl:SetDisabled(on)
-    resetcontrolpoints:SetDisabled(on)
-    if on then
-        if interpolationinput.Value == "bezierInterp" then
-            interpolationinput:SetValue({Name = "Cubic Curve", Value = "cubicInterp"})
-        end
-        delayinput:SetValue(0)
-        interpolationinput:RemoveItem("Manual Curve")
-    else
-        interpolationinput:AddItem({Name = "Manual Curve", Value = "bezierInterp"})
+local function fautoDockMAS(value)
+    if value == nil then
+        value = not autoDockMAS.Value
+        autoDockMAS:SetValue(value)
     end
+    dep.dollycam.autoDockMAS = value
 end
+autoDockMAS:Clicked(function(value)
+    if not dep.dollycam.playing then
+        fautoDockMAS(value)
+    end
+end)
 
 
 
-restoreSettings()
-
-dep.dollycam.interpMethod = interpolationinput.Value
-dep.dollycam.dropdown = pathinput
-dep.dollycam.latesttweentime = tweentimeinput.Value
-dep.dollycam.tsinput = timescaleinput
-dep.dollycam.framebased = framebasedprev.Value
-dep.dollycam.framebasedfps = framebasedfps.Value
-dep.dollycam.scaleMAStl = scaletoMASTLlength.Value
-dep.dollycam.syncMAStl = syncmoontimeline.Value
-dep.dollycam.toggleMoonSync = toggleMoonSync
-
-
-framebasedprevtoggle()
 
 if dep.dollycam.initialize() then
     interpUpdate()
@@ -580,3 +631,6 @@ else
 end
 
 dep.util.mvmprint("Finished Loading")
+
+--task.wait(5)
+--gui.GUIUtil.DumpGUI(widget.Content)

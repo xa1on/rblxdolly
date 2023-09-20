@@ -22,6 +22,7 @@ local returnFOV
 m.playing = false
 
 -- variables
+m.renderVisual = true
 m.syncMAStl = false
 m.syncMAStlonplay = true
 m.scaleMAStl = false
@@ -36,6 +37,7 @@ m.dropdown = nil
 m.tsinput = nil
 m.lockctrlbezier = true
 m.useMoonCam = false
+m.autoDockMAS = true
 
 m.mvmDirName = "mvmpaths"
 m.renderDirName = "Render"
@@ -113,8 +115,6 @@ function m.grabPoints(path)
     if m.useMoonCam then
         local points = {CFrame = {}, FOV = {}, Roll = {}}
         local Tracks = m.grabTracks()
-        Tracks.CFrame:SetEnabled(false)
-        Tracks.FOV:SetEnabled(false)
         for i,v in Tracks do
             v.TrackItems:Iterate(function(Frame)
                 points[i][#points[i]+1] = {Frame.TargetValues[0], Frame.frm_pos / moon.current_fps}
@@ -146,7 +146,7 @@ end
 
 function m.reloadDropdown()
     if not m.dropdown then return end
-    for _,v in pairs(m.dropdown.DropdownScroll.Content:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    m.dropdown:ClearItems()
     if not m.mvmDir then m.checkDir() return end
     for _, inst in pairs(m.pathsDir:GetChildren()) do
         if inst.Name ~= m.renderDirName then
@@ -185,7 +185,7 @@ function m.checkDir(createpath)
     m.mvmDir = util.createIfNotExist(workspace, "Folder", m.mvmDirName)
     m.moonSyncCam = util.createIfNotExist(m.mvmDir, "Camera", m.moonSyncCamName)
     m.moonSyncCamRoll = util.createIfNotExist(m.moonSyncCam, "NumberValue", "Roll")
-    m.renderDir = util.createIfNotExist(m.mvmDir, "Folder", m.renderDirName)
+    m.renderDir = util.createIfNotExist(m.mvmDir--[[game:GetService("CoreGui")]], "Folder", m.renderDirName)
     m.pathsDir = util.createIfNotExist(m.mvmDir, "Folder", m.pathsDirName, "ChildAdded", m.reloadDropdown)
     if m.currentPathValue and string.len(m.currentPathValue) > 0 and createpath then
         if not m.pathsDir:FindFirstChild(m.currentPathValue) then
@@ -328,7 +328,9 @@ function m.pointGui(parent, name, type, adornee)
     guipoint.AlwaysOnTop = false
     guipoint.Size = m.pointProperties[type].size
     guiframe.BackgroundColor3 = m.pointProperties[type].color
-    guiframe.Size = UDim2.new(1,0,1,0)
+    guiframe.AnchorPoint = Vector2.new(0.5,0.5)
+    guiframe.Position = UDim2.fromScale(0.5,0.5)
+    guiframe.Size = UDim2.new(0.5,0,0.5,0)
     guiframe.BorderSizePixel = 0
     if adornee then guipoint.Adornee = adornee end
     return guipoint
@@ -425,13 +427,13 @@ function m.renderSegment(target, parent)
             end
         end
         local t = 1
-        local betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
+        local betweenCF = interp.segmentInterp(renderPoints, t / 3, interp[m.interpMethod])
         while betweenCF[1] ~= true do
             local direction = m.createDirection(betweenCF[2], parent, t, "path")
             local pointgui = m.pointGui(direction, t, "path", direction)
             pointgui.StudsOffsetWorldSpace = Vector3.new(0,0,0.25)
             t = t + 1
-            betweenCF = interp.segmentInterp(renderPoints, t / 5, interp[m.interpMethod])
+            betweenCF = interp.segmentInterp(renderPoints, t / 3, interp[m.interpMethod])
         end
     end
 end
@@ -449,6 +451,7 @@ function m.renderPoint(point)
         end
     end
     local newPoint = point:Clone()
+    newPoint.Size = Vector3.new(0.5,0.5,0.5)
     newPoint:ClearAllChildren()
     newPoint.Parent = m.renderDir
     m.createDirection(newPoint.CFrame, newPoint, "point", "point")
@@ -485,7 +488,33 @@ function m.renderPoint(point)
 end
 
 function m.renderPath()
-    if m.playing or m.ignorechange then return end
+    if m.playing or m.ignorechange or not m.renderVisual then return end
+    if m.useMoonCam then
+        m.checkDir()
+        if m.renderDir then m.renderDir:ClearAllChildren() end
+        local points = m.grabPoints()
+        if #points.CFrame < 1 then return end
+        for i, v in pairs(points.CFrame) do
+            local newPoint = m.point(v[1], m.renderDir, i, true, false)
+            newPoint.Size = Vector3.new(0.5,0.5,0.5)
+            m.createDirection(newPoint.CFrame, newPoint, "point", "point")
+            m.pointGui(newPoint, nil, "point", newPoint)
+            if not (i == #points.CFrame) then
+                local t = math.min(1, (points.CFrame[i+1][2] - v[2])*3/2)
+                local tt = t/3 + v[2]
+                local betweenCF = interp.moonSegmentInterp({CFrame = {[0] = points.CFrame[i-1], v, points.CFrame[i+1], points.CFrame[i+2]}}, tt, interp[m.interpMethod])[2]
+                while (tt < points.CFrame[i+1][2]) do
+                    local direction = m.createDirection(betweenCF, newPoint, t, "path")
+                    local pointgui = m.pointGui(direction, t, "path", direction)
+                    pointgui.StudsOffsetWorldSpace = Vector3.new(0,0,0.25)
+                    t = t + 1
+                    tt = t/3 + v[2]
+                    betweenCF = interp.moonSegmentInterp({CFrame = {[0] = points.CFrame[i-1], v, points.CFrame[i+1], points.CFrame[i+2]}}, tt, interp[m.interpMethod])[2]
+                end
+            end
+        end
+        return
+    end
     if not util.notnill(m.pointDir) then
         if not m.checkDir() then return end
     end
@@ -498,6 +527,7 @@ function m.renderPath()
 end
 
 function m.hideRender(show)
+    if not m.renderVisual then show = false end
     if show == nil then show = false end
     if not workspace:FindFirstChild(m.mvmDirName) then return end
     m.checkDir()
@@ -548,6 +578,7 @@ function m.runPath()
     --.autoreorder:SetDisabled(true)
     m.checkDir()
     m.hideRender()
+    --interp.clearGraph()
     previewTime = 0
     local Camera = workspace.CurrentCamera
     m.returnCFrame = Camera.CFrame
@@ -558,6 +589,9 @@ end
 
 function m.stopPreview()
     --.autoreorder:SetDisabled(false)
+    if m.useMoonCam or m.syncMAStlonplay then
+        MASLS:SetSliderFrame(0)
+    end
     m.playing = false
     local Camera = workspace.CurrentCamera
     Camera.CameraType = Enum.CameraType.Custom
@@ -700,8 +734,7 @@ function m.scaleTLTween()
 end
 
 function m.moonDollyExist()
-    m.checkDir(true)
-    if not m.moonSyncCam then return end
+    if not m.moonSyncCam then m.checkDir(true) end
     local camfound = false
     local rollfound = false
     MASLSLC:Iterate(function(Track)
@@ -714,7 +747,10 @@ function m.moonDollyExist()
             return
         end
     end)
-    return camfound and rollfound
+    if (camfound and not rollfound) or ((not camfound) and rollfound) then
+        m.createMoonDollycam()
+    end
+    return camfound or rollfound
 end
 
 function m.createMoonDollycam()
@@ -757,6 +793,8 @@ function m.grabTracks()
     return {CFrame = CFrameTrack, FOV = FOVTrack, Roll = RollTrack}
 end
 
+
+local oldCFrame
 util.appendConnection(RunService.Heartbeat:Connect(function(step)
     m.preview(step)
     if m.playing or (not MASLS) then return end
@@ -775,16 +813,28 @@ util.appendConnection(RunService.Heartbeat:Connect(function(step)
             m.scaleTL()
         end
     end
-    if m.moonDollyExist() then
+    if m.moonDollyExist() and m.autoDockMAS then
         if not m.useMoonCam then
             m.useMoonCam = true
-            m.unloadPaths()
             m.toggleMoonSync(true)
+            m.renderPath()
             m.delay = 0
         end
+        local Tracks = m.grabTracks()
+        local cframetable = {}
+        Tracks.CFrame.TrackItems:Iterate(function(Frame)
+            cframetable[#cframetable+1] = "("..tostring(Frame.TargetValues[0])..")"
+        end)
+        if oldCFrame and oldCFrame ~= table.concat(cframetable) then
+            m.renderPath()
+        end
+        oldCFrame = table.concat(cframetable)
+        Tracks.CFrame:SetEnabled(false)
+        Tracks.FOV:SetEnabled(false)
     elseif m.useMoonCam then
         m.useMoonCam = false
         m.toggleMoonSync()
+        m.renderPath()
     end
     previouskf = framenum
 end))

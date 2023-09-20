@@ -6,6 +6,23 @@ m.startctrlName = "1"
 m.endctrlName = "2"
 m.tension = 0
 m.alpha = 0
+--[[
+m.graph = game:GetService("StarterGui"):FindFirstChild("Graph")
+m.graphy = 1
+
+
+function m.clearGraph()
+    if not m.graph then return end
+    m.graph.Frame:ClearAllChildren()
+    m.graphy = 1
+end
+function m.graphPoint(x)
+    if not m.graph then return end
+    local newPoint = m.graph.Dot:Clone()
+    newPoint.Parent = m.graph.Frame
+    newPoint.Position = UDim2.new(0, x, m.graphy, 0)
+    m.graphy = m.graphy - 0.001
+end]]
 
 function m.CFrameDist(cf1, cf2)
     if not cf1 or not cf2 then return 0 end
@@ -28,7 +45,34 @@ function m.CRCoefficents(p0, p1, p2, p3, t)
 end
 
 function m.cubic(t, a, b, c, d)
-    return a + t*(b + t*(c + t*d))
+    return d + t*(c + t*(b + t*a))
+end
+
+function m.invquad(y, a, b, c)
+    if a == 0 then return -((c-y)/b) end
+    c = c - y
+    return (-b+(b^2-4*a*c)^(1/2))/(2*a)
+end
+
+function m.invcubic(y, a, b, c, d, threshold, min, max)
+    if not a then return m.invquad(y, b, c) end
+    threshold = threshold or 0.0001
+    max = max or 1
+    min = min or 0
+    if min > 1 - threshold then return 1 end
+    if min >= max then
+        return nil
+    end
+    local mid = (max + min)/2
+    local calc = m.cubic(mid, a, b, c, d)
+    local diff = y - calc
+    if math.abs(diff) <= threshold then
+        return mid
+    elseif diff < 0 then
+        return m.invcubic(y, a, b, c, d, threshold, min, mid)
+    else
+        return m.invcubic(y, a, b, c, d, threshold, mid, max)
+    end
 end
 
 function m.lerp(p1, p2, t)
@@ -42,18 +86,21 @@ function m.cosine(p1, p2, t)
 end
 
 function m.linearInterp(path, t)
+    if #path < 1 then return end
     local p1 = path[1]
     local p2 = path[2] or p1
     return m.lerp(p1, p2, t)
 end
 
 function m.cosineInterp(path, t)
+    if #path < 1 then return end
     local p1 = path[1]
     local p2 = path[2] or p1
     return m.cosine(p1, p2, t)
 end
 
-function m.catmullRomInterp(path, t, _, tension, alpha)
+function m.catmullRomInterp(path, t, _, tension, alpha, inv, y)
+    if #path < 1 then return end
     tension = tension or m.tension
     alpha = alpha or m.alpha
     local p0 = path[0] or path[1]
@@ -76,14 +123,15 @@ function m.catmullRomInterp(path, t, _, tension, alpha)
     local t3 = t2 + tj(p2,p3)^alpha;
     local m1 = (1.0 - tension) * (t2 - t1) * ((p1 - p0) / (t1 - t0) - (p2 - p0) / (t2 - t0) + (p2 - p1) / (t2 - t1));
     local m2 = (1.0 - tension) * (t2 - t1) * ((p2 - p1) / (t2 - t1) - (p3 - p1) / (t3 - t1) + (p3 - p2) / (t3 - t2));
-
-    return m.cubic(t, p1, m1, -3*(p1 - p2) - m1 - m1 - m2, 2*(p1 - p2) + m1 + m2)
+    if inv then return m.invcubic(y, 2*(p1 - p2) + m1 + m2, -3*(p1 - p2) - m1 - m1 - m2, m1, p1) end
+    return m.cubic(t, 2*(p1 - p2) + m1 + m2, -3*(p1 - p2) - m1 - m1 - m2, m1, p1)
     --local a,b,c,d = m.CRCoefficents(p0, p1, p2, p3)
     --return m.cubic(t, a, b, c, d)
 end
 m.cubicInterp = m.catmullRomInterp
 
 function m.fourpCubicInterp(path, t, control)
+    if #path < 1 then return end
     if not control then return m.catmullRomInterp(path, t) end
     local p1 = path[1]
     local p2 = path[2]
@@ -131,15 +179,19 @@ function m.segmentInterp(points, t, func)
     points[0] = points[0] or points[1]
     points[2] = points[2] or points[1]
     points[3] = points[3] or points[2]
+    local totaldist = 0
     local cframelist = {}
     local fovlist = {}
     local rolllist = {}
     local ctrllist = {}
+    local distlist = {}
     for i = 0,3,1 do
         if points[i] then
             cframelist[i] = points[i].CFrame
             fovlist[i] = points[i].FOV.Value
             rolllist[i] = points[i].Roll.Value
+            distlist[i+1] = points[i].TweenTime.Value + totaldist
+            totaldist += points[i].TweenTime.Value
             ctrllist[i] = {}
             local startCtrl = points[i]:FindFirstChild(m.startctrlName)
             if startCtrl then ctrllist[i][1] = startCtrl.CFrame end
@@ -147,16 +199,24 @@ function m.segmentInterp(points, t, func)
             if endCtrl then ctrllist[i][2] = endCtrl.CFrame end
         end
     end
-    local dist = points[1].TweenTime.Value
-    local progression = t/dist
+    local progression = t/points[1].TweenTime.Value
+    --[[
+    if true then--func == m.catmullRomInterp then
+        progression = m.catmullRomInterp(distlist, nil, nil, nil, nil, true, t + distlist[1])
+        m.graphPoint(progression*200)
+        --progression = (m.catmullRomInterp(distlist, (t/points[1].TweenTime.Value)) - distlist[1])/(points[2].TweenTime.Value)
+        --print(progression)
+        --print(t)
+        print(util.dump(distlist))
+        --task.wait(0.1)
+    end]]
     if progression >= 1 then
-        return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value, dist}
+        return {true, points[2].CFrame, points[2].FOV.Value, points[2].Roll.Value, points[1].TweenTime.Value}
     else
         return {false,
         m.interpolateCF(cframelist, progression, func, ctrllist),
         func(fovlist, progression),
-        func(rolllist, progression),
-        0}
+        func(rolllist, progression)}
     end
 end
 
@@ -168,6 +228,7 @@ function m.pathInterp(points, t, func)
     for index, _ in pairs(points) do
         local next = points[index+1]
         if next then
+            if current_t >= points[index].TweenTime.Value then current_t = current_t - points[index].TweenTime.Value continue end
             local pointlist = {}
             for i = -1,2,1 do
                 if points[index+i] then
@@ -175,12 +236,13 @@ function m.pathInterp(points, t, func)
                 end
             end
             local segInterp = m.segmentInterp(pointlist, current_t, func)
-            local dist = segInterp[5]
+            --[[local dist = segInterp[5]
             if segInterp[1] then
                 current_t = current_t - dist
-            else
+            else]]
+            --print(util.dump(segInterp))
                 return segInterp
-            end
+            --end
         end
     end
     local lastPoint = points[#points]
@@ -201,17 +263,18 @@ function m.moonSegmentInterp(points, t, func)
             if v[i] then content[j][i] = v[i][1] end
         end
         if v[2][2] - v[1][2] == 0 then
-            progress[j] = 1
+            progress[j] = 0
         else
             progress[j] = (t - v[1][2]) / (v[2][2] - v[1][2])
         end
     end
     --print(util.dump(content))
     --print(util.dump(progress))
-    return {false,
-    m.interpolateCF(content.CFrame, progress.CFrame, func),
-    func(content.FOV, progress.FOV),
-    func(content.Roll, progress.Roll),0}
+    local returnTable = {false}
+    returnTable[2] = m.interpolateCF(content.CFrame, progress.CFrame, func)
+    returnTable[3] = func(content.FOV, progress.FOV)
+    returnTable[4] = func(content.Roll, progress.Roll)
+    return returnTable
 end
 
 function m.moonPathInterp(points, t, func)
@@ -230,7 +293,7 @@ function m.moonPathInterp(points, t, func)
         if not found then inputTable[i] = {v[#v]} end
     end
     returnTable = m.moonSegmentInterp(inputTable, t, func)
-    return {false, returnTable[2], returnTable[3], returnTable[4], 0}
+    return {false, returnTable[2], returnTable[3], returnTable[4]}
 end
 
 return m
