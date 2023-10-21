@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.9"
+local version = "0.5.10-fix"
 local newestversion
 local outofdate = false
 
@@ -260,6 +260,7 @@ if not _G.MoonGlobal then
     scaleMASpathtotl:SetDisabled(true)
     createMoonDollycam:SetDisabled(true)
     lautoDockMAS:SetDisabled(true)
+    synctimelineonplay:SetDisabled(true)
 end
 
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)

@@ -589,7 +589,7 @@ end
 
 function m.stopPreview()
     --.autoreorder:SetDisabled(false)
-    if m.useMoonCam or m.syncMAStlonplay then
+    if m.moon and (m.useMoonCam or m.syncMAStlonplay) then
         MASLS:SetSliderFrame(0)
     end
     m.playing = false
@@ -654,19 +654,20 @@ end
 function m.goToTime(currenttime, savecomp)
     local previewLocation
     local points = m.grabPoints()
-    local fps = moon.current_fps
+    local fps
+    if moon then fps = moon.current_fps end
     if m.useMoonCam then
         previewLocation = interp.moonPathInterp(points, currenttime, interp[m.interpMethod])
     else
         previewLocation = interp.pathInterp(points, math.max(currenttime - m.delay,0), interp[m.interpMethod])
     end
-    if (previewLocation[1] and not m.useMoonCam) or (m.useMoonCam and MASLS.length == MASLS.SliderFrame) then return true else
+    if ((previewLocation[1] and not m.useMoonCam) or (m.useMoonCam and MASLS.length == MASLS.SliderFrame)) then return true else
         local Camera = workspace.CurrentCamera
         Camera.CameraType = Enum.CameraType.Custom
         Camera.FieldOfView = previewLocation[3]
         Camera.CFrame = util.setCFRoll(previewLocation[2], math.rad(previewLocation[4]))
         setRoll.updateRoll(previewLocation[4])
-        if (m.syncMAStl and not savecomp) or (m.playing and m.syncMAStlonplay) then MASLS:SetSliderFrame(math.round((currenttime*fps)/tscale.timescale + moon.time_offset)) end
+        if moon and ((m.syncMAStl and not savecomp) or (m.playing and m.syncMAStlonplay)) then MASLS:SetSliderFrame(math.round((currenttime*fps)/tscale.timescale + moon.time_offset)) end
     end
 end
 
