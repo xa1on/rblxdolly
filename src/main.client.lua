@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.10-fix"
+local version = "0.5.12"
 local newestversion
 local outofdate = false
 
@@ -265,9 +265,23 @@ end
 
 local keybindsection = gui.Section.new({Text = "Keybinds", Open = true}, settingsframe.Content)
 
+function dump(o)
+    if type(o) == 'table' then
+       local s = '{ '
+       for k,v in pairs(o) do
+          if type(k) ~= 'number' then k = '"'..k..'"' end
+          s = s .. '['..k..'] = ' .. dump(v) .. ','
+       end
+       return s .. '} '
+    else
+       return tostring(o)
+    end
+end
+
+
 local savedkeybinds = plugin:GetSetting("rblxdolly saved keybinds") or {}
 local function createKeybind(title, paction, default, binds, raction, holdable, unrestricted)
-    if savedkeybinds[title] then default = savedkeybinds[title] end
+    if savedkeybinds[title] and type(savedkeybinds[title]) == "table" then default = savedkeybinds[title] end
     local newkeybind = gui.KeybindInputField.new({PressedAction = paction, ReleasedAction = raction, CurrentBind = default, Binds = binds, Holdable = holdable, Unrestricted = unrestricted})
     gui.Labeled.new({Text = title, LabelSize = 0.5, Object = newkeybind}, gui.ListFrame.new(nil, keybindsection.Content).Content)
     newkeybind:Changed(function(p)
