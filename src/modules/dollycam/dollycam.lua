@@ -542,13 +542,15 @@ end
 
 function m.createPoint()
     m.checkDir(true)
+    local Camera = workspace.CurrentCamera
     if m.useMoonCam then
         local Tracks = m.grabTracks()
+        m.moonSyncCam.FieldOfView = Camera.FieldOfView
+        m.moonSyncCamRoll.Value = setRoll.angle
         MA.DoCompositeAction("AddToTracks", {Tracks = {Tracks.CFrame, Tracks.FOV, Tracks.Roll}})
         return
     end
     if not util.notnill(m.pointDir) then return end
-    local Camera = workspace.CurrentCamera
     local points = m.grabPoints()
     local name = nil
     if #points > 0 then name = points[#points].Name+1 else name = 1 end

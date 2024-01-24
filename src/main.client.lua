@@ -28,7 +28,7 @@ print("\n" ..
 "       \\_| \\_\\____/\\_____/\\/   \\/\\_|  |_/\\___/\\_|  |_/\n" .. 
 "\n\n                   [xalon / something786]\n")
 
-local version = "0.5.12"
+local version = "0.5.13"
 local newestversion
 local outofdate = false
 
@@ -332,6 +332,7 @@ dep.dollycam.framebased = framebasedprev.Value
 dep.dollycam.framebasedfps = framebasedfps.Value
 dep.dollycam.scaleMAStl = scaletoMASTLlength.Value
 dep.dollycam.syncMAStl = syncmoontimeline.Value
+dep.dollycam.syncMAStlonplay = synctimelineonplay.Value
 dep.dollycam.toggleMoonSync = toggleMoonSync
 dep.dollycam.autoDockMAS = autoDockMAS.Value
 dep.dollycam.renderVisual = renderpathcheckbox.Value
